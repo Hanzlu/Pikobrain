@@ -5,11 +5,11 @@
 ;**********
 
 loader:
-	mov ax, 0x9c0
-	mov ss, ax      ;stack segment
+    mov ax, 0x9c0
+    mov ss, ax      ;stack segment
     mov ax, 0x7c0
     mov ds, ax      ;data segment
-	mov sp, 0x1000 
+    mov sp, 0x1000 
 
     ;read files
     ;reset
@@ -335,6 +335,6 @@ copy:
     ;fill up space
     times 660 db 0
 
-
+;Linux commands to make .bin and .flp file
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp
