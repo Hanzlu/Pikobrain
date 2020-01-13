@@ -1,0 +1,54 @@
+PIKOBRAIN MANUAL
+by Hanzlu (2020)
+--------------------
+
+INTRODUCTION
+--------------------
+Pikobrain is an operative system coded by Hanzlu starting in 2019. I had for some time been interested in making very low level programming languages and wanted to make them work on a real computer, so I decided I would make an operative system where such languages could be used. However, the more I coded for the OS the more I forgot about the original reason, and the OS turned out to be more of a MS-DOS inspired OS but much worse and less usable, intentionally. At the moment, I try to make an OS you can use for simple normal tasks, but it's less usable and user-friendly.
+
+INSTALLATION
+--------------------
+In the Github repository you can find three os.* files (of types .asm, .bin and .flp). The os.asm file is the assembly code, os.bin the binary code and os.flp the floppy image. I've used VirtualBox for running the OS. When installing Pikobrain you "insert" the os.flp file into the floppy drive and start the virtual machine. If the installation is succesful you'll see "PIKOBRAIN" in large text and an S representing "Success". If there is some sort of failure during the installation you'll not see the "logo". 
+When Pikobrain has been installed correctly you'll remove the os.flp file and reboot (from the hard drive) the machine. If the boot is succesfull you'll see the "PIKOBRAIN" text again, but without the S. Press a key and you'll be able to use commands.
+
+COMMANDS
+--------------------
+Commands in Pikobrain are done by pressing keys. Each command is only one character long. You always use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different. Here is a list of the commands you can use within Pikobrain and how they work:
+
+Time, t:
+When pressing the 't' key the current time will be displayed to the screen in the format hhmmss (24h clock). If the time is 7:05:32 PM it will be displayed as 190532.
+
+Date, d:
+When pressing the 'd' key the current date will be displayed in the same way as with the Time command. The format is yyyymmdd.
+
+Enter, enter:
+When pressing the enter button the cursor will be moved to the beginning of the next line.
+
+Return, r:
+When pressing the 'r' button the cursor will be moved to the top left of the screen.
+
+Files
+----------
+Files in Pikobrain are 512 bytes (512 characters) in size. If there is not enough content to fill up the 512 bytes the empty spots will consist of null characters (ASCII 0). The file managment commands also require a second command. You press the key for the main file managment command and then the number of the file you'll use. The numbers go from 1-9. Files 1-3 are reserved for the OS, and should not be edited. Files 4-9 may be used by the user. Files are represented by numbers rather than names. 
+(NOTE: File number 10 can be accessed by using key ':' since the OS checks the ASCII value of the character, and ':' is the character after '9'. Possibly there's up to 17 or more files that are usable, but you should primarily use files 4-9)
+(NOTE: All files are opened in the same location of RAM. This means content of old files are still present when writing files (Write command) and is saved along with what you write. A way to avoid this is by first opening (Memory or Ascii commands) an empty filem and then write or restart the computer.)
+These are the file managment commands and how they work:
+
+Memory, m:
+The 'm' key followed by the number of the file you'll use, will display the file in hexadecimal form, similar to the os.bin file.
+
+Ascii, a:
+The 'a' key followed by the file number will display the file in ASCII character format.
+
+Write, w:
+The '2' key followed by the file number allow you to write to the file. When you've pressed the 'w' key and the number you can start typing. You can use character keys and the shift key. The enter button is not supported. If you make a typo you can use the backspace key to move the cursor backwards and retype letters (the backspace button does not erase characters). In order to save a file you simply press the '`' key. The file is saved and you are back in the command interpreter. In order to cancel writing a file you type a '~' character (shift + `). 
+(NOTE: When saving a file you might get unexpected extra characters saved along with it. To avoid this you should open an empty file before writing or restart the computer)
+
+Delete:
+There is no seperate delete command. In order to erase a file you can open an empty file (or restart the computer), then open a file to write and immediately save the file. Then the file will be completly filled up with null characters (ASCII 0).
+
+Copy, c:
+The 'c' key-command require two aditional commands; the number of the file to copy, and the number of the file to copy to (source and destination). In order to make sure the computer have copied the first file, you should wait a second before entering the destination-file's number, since this is asked for after the first file has been copied.
+
+--------------------
+v0.3.2
