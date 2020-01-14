@@ -30,7 +30,7 @@ When pressing the 'r' button the cursor will be moved to the top left of the scr
 Files
 ----------
 Files in Pikobrain are 512 bytes (512 characters) in size. If there is not enough content to fill up the 512 bytes the empty spots will consist of null characters (ASCII 0). The file managment commands also require a second command. You press the key for the main file managment command and then the number of the file you'll use. The numbers go from 1-9. Files 1-3 are reserved for the OS, and should not be edited. Files 4-9 may be used by the user. Files are represented by numbers rather than names. 
-(NOTE: File number 10 can be accessed by using key ':' since the OS checks the ASCII value of the character, and ':' is the character after '9'. Possibly there's up to 17 or more files that are usable, but you should primarily use files 4-9)
+(NOTE: File number 10 can be accessed by using key ':' since the OS checks the ASCII value of the character, and ':' is the character after '9'.
 (NOTE: All files are opened in the same location of RAM. This means content of old files are still present when writing files (Write command) and is saved along with what you write. A way to avoid this is by first opening (Memory or Ascii commands) an empty filem and then write or restart the computer.)
 These are the file managment commands and how they work:
 
