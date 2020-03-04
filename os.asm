@@ -5,11 +5,11 @@
 ;**********
 
 loader:
-    mov ax, 0x9c0
-    mov ss, ax      ;stack segment
+	mov ax, 0x9c0
+	mov ss, ax      ;stack segment
     mov ax, 0x7c0
     mov ds, ax      ;data segment
-    mov sp, 0x1000 
+	mov sp, 0x1000 
 
     ;read files
     ;reset
@@ -22,11 +22,11 @@ loader:
     ;read
     ;check dl
     cmp dl, 0x80 ;floppy or drive
-    je x80
+    je dldrive
     mov ax, 0x203
     mov cx, 1h
     jmp bootread
-x80:
+dldrive:
     mov ax, 0x202
     mov cx, 2h
 bootread:
@@ -37,7 +37,7 @@ bootread:
 bootwrite:
     cmp dl, 0x80 ;if drive boot
     je drawlogo
-    ;write OS to hard drive
+    ;write files to hard drive
     ;reset
     mov ah, 0h
     mov dl, 0h
@@ -50,6 +50,7 @@ bootwrite:
     mov cx, 1h
     mov dx, 0x80
     int 13h
+    mov dl, 0h ;floppy boot
     cmp ah, 0h ;if error stop
     jne $
 
@@ -57,7 +58,7 @@ drawlogo:
     ;paint logo
     mov ax, 0x7c0
     mov es, ax
-    mov bx, 0x96 ;location of logo
+    mov bx, 0x9d ;location of logo
 nextbox:
     mov ax, [es:bx]
     cmp al, 0h
@@ -88,13 +89,16 @@ paintbox:
 
 jmppb:
     cmp dl, 0x80
-    jne $
+    jne success
     ;if drive boot
-    ;await char
-    ;enter OS
+    ;await char and enter OS
     mov ah, 0h
     int 16h
     jmp 0x1000:0x0
+
+success:
+    mov ax, 0xe53 ;S
+    int 10h
 
     ;logo
     db 1,1,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,2 
@@ -132,8 +136,11 @@ input:
     cmp al, 0x77 ;w
     je write
     cmp al, 0x63 ;c
-    je copy   
-
+    je copy  
+    cmp al, 0x6b ;k
+    je kalc 
+    cmp al, 0x62 ;b
+    je brainfuck
     jmp input
 
 enter:
@@ -202,6 +209,8 @@ tdout:
 
 memory:
     call readfile
+    mov cx, 1h ;counter
+    mov dl, 0x10 ;divisor
     jmp mbyte
 readfile:
     ;get file number
@@ -223,15 +232,13 @@ readfile:
     mov ax, 0x201
     mov dx, 0x80
     int 13h
-    mov cx, 1h ;counter
-    mov dl, 0x10 ;divisor
     ret
 mbyte:
     ;get content of byte
     push bx
     mov ax, [es:bx]
     mov ah, 0h
-    div dl
+    div dl ;make HEX
     cmp ah, 0xa
     jl skip1
     add ah, 7h ;make it a letter HEX
@@ -263,7 +270,6 @@ ascii:
     ;read file as ASCII chars
     call readfile
 nextascii:
-    push bx
     mov ax, [es:bx]
     mov ah, 0xe
     int 10h
@@ -283,7 +289,7 @@ write:
     mov ax, 0x1200
     mov es, ax
     mov bx, 0x0
-    mov dx, 1h
+    mov dx, 1h ;char counter
 typechar:
     ;get char to write    
     mov ah, 0h
@@ -292,11 +298,11 @@ typechar:
     mov ah, 0xe
     int 10h
     ;special chars
-    cmp al, 0x60 ;~
+    cmp al, 0x60 ;` save
     je save    
     cmp al, 0x8
     je backspace
-    cmp al, 0x7e
+    cmp al, 0x7e ;~ cancel
     je input
     mov byte [es:bx], al   
     cmp dx, 0x200 
@@ -330,11 +336,198 @@ copy:
     int 16h
     sub al, 30h
     mov cl, al
-    jmp save    
+    jmp save 
+
+kalc:
+    mov ax, 0x61 ;end of answer
+    push ax
+    mov bx, 0h  ;int storage
+    mov cx, 0h  ;power counter
+    push cx ;necessary for "nextint"
+    mov dx, 0xa ;divisor
+nextnum:
+    ;get number
+    mov ah, 0h
+    int 16h
+    cmp al, 0xd ;enter
+    je nextint
+    mov ah, 0xe
+    int 10h
+    mov ah, 0h
+    sub al, 30h
+    cmp cl, 0h ;special case
+    je cl0
+    ;multiplicate with relevant power
+    push ax
+    mov ax, dx
+    mul cx
+    mov dx, ax
+    pop ax
+    mul dx
+    add bx, ax
+    inc cl
+    jmp nextnum
+cl0:
+    add bx, ax
+    inc cl
+    jmp nextnum
+nextint:
+    pop cx
+    cmp ch, 1h ;if both ints inputted
+    je kalcop
+    push bx ;store int1
+    mov ch, 1h
+    push cx
+    mov bx, 0h
+    mov cx, 0h
+    mov dx, 0xa
+    jmp nextnum
+kalcop:
+    pop cx ;first int
+    mov ah, 0h
+    int 16h
+    cmp al, 0x31 ;add
+    je kalcadd
+    cmp al, 0x32 ;subtract
+    je kalcsub
+    cmp al, 0x33 ;multiplicate
+    je kalcmul
+    cmp al, 0x34 ;divide
+    je kalcdiv
+    cmp al, 0x35 ;modulo
+    je kalcmod
+    mov ah, 0xe
+    int 10h
+    jmp kalcop ;if wrong redo
+kalcadd:
+    mov ax, bx 
+    add ax, cx
+    jmp kalcans
+kalcsub:
+    mov ax, bx
+    sub cx, ax
+    mov ax, cx
+    jmp kalcans
+kalcmul:
+    mov ax, bx
+    mul cx
+    jmp kalcans
+kalcdiv:
+    mov dx, 0h ;(dx ax) / cx
+    mov ax, cx
+    mov cx, bx
+    div cx
+    jmp kalcans
+kalcmod:
+    mov dx, 0h
+    mov ax, cx
+    mov cx, bx
+    div cx
+    mov ax, dx
+kalcans:    
+    ;answer stored in ax
+    mov dx, 0h  ;(dx ax) / cx
+    mov cx, 0xa ;divisor
+kalcnext:
+    div cx
+    push dx ;store reversed order
+    cmp ax, 0h
+    je kalcout
+    mov dx, 0h
+    jmp kalcnext
+kalcout:
+    mov ah, 0xe
+    mov al, 0x3d ;=
+    int 10h
+ansnext:
+    pop ax
+    cmp ax, 0x61 ;end of ans
+    je input
+    add ah, 0xe
+    add al, 30h
+    int 10h ;output answer
+    jmp ansnext
+
+brainfuck:
+    call readfile ;es:bx
+    mov ax, 0x1300
+    mov fs, ax
+    mov si, 0x0 ;fs:si, operate onto
+bfnext:
+    cmp byte [es:bx], 0x31 ;+
+    je bf1
+    cmp byte [es:bx], 0x32 ;-
+    je bf2
+    cmp byte [es:bx], 0x33 ;<
+    je bf3
+    cmp byte [es:bx], 0x34 ;>
+    je bf4
+    cmp byte [es:bx], 0x35 ;.
+    je bf5
+    cmp byte [es:bx], 0x36 ;,
+    je bf6
+    cmp byte [es:bx], 0x37 ;[
+    je bf7
+    cmp byte [es:bx], 0x38 ;]
+    je bf8
+    cmp byte [es:bx], 0x0 ;code end
+    je input
+    jmp bfend
+bf1:
+    inc byte [fs:si]
+    jmp bfend
+bf2:
+    dec byte [fs:si]
+    jmp bfend
+bf3:
+    inc si
+    jmp bfend
+bf4:
+    dec si
+    jmp bfend
+bf5:
+    mov ax, [fs:si]
+    mov ah, 0xe
+    int 10h
+    jmp bfend
+bf6:
+    mov ah, 0h
+    int 16h
+    mov [fs:bx], al
+bf7:
+    mov cx, 1h ;inc or dec
+    cmp byte [fs:si], 0h
+    jne bfend
+    jmp bf78
+bf8:
+    mov cx, -1h
+    cmp byte [fs:si], 0h
+    je bfend
+bf78:
+    mov dx, 1h ;nested loops
+bf78cmp:
+    cmp dx, 0h
+    je bfend
+bf78next:
+    add bx, cx
+    cmp byte [es:bx], 0x37 ;[
+    je bf7837
+    cmp byte [es:bx], 0x38 ;]
+    je bf7838
+    jmp bf78next
+bf7837:
+    add dx, cx
+    jmp bf78cmp
+bf7838:
+    sub dx, cx
+    jmp bf78cmp
+bfend:
+    inc bx ;next char
+    jmp bfnext
 
     ;fill up space
-    times 660 db 0
+    times 296 db 0
 
-;Linux commands to make .bin and .flp file
+
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp
