@@ -454,21 +454,21 @@ brainfuck:
     mov fs, ax
     mov si, 0x0 ;fs:si, operate onto
 bfnext:
-    cmp byte [es:bx], 0x31 ;+
+    cmp byte [es:bx], 0x2b ;+
     je bf1
-    cmp byte [es:bx], 0x32 ;-
+    cmp byte [es:bx], 0x2d ;-
     je bf2
-    cmp byte [es:bx], 0x33 ;<
+    cmp byte [es:bx], 0x3c ;<
     je bf3
-    cmp byte [es:bx], 0x34 ;>
+    cmp byte [es:bx], 0x3e ;>
     je bf4
-    cmp byte [es:bx], 0x35 ;.
+    cmp byte [es:bx], 0x2e ;.
     je bf5
-    cmp byte [es:bx], 0x36 ;,
+    cmp byte [es:bx], 0x2c ;,
     je bf6
-    cmp byte [es:bx], 0x37 ;[
+    cmp byte [es:bx], 0x5b ;[
     je bf7
-    cmp byte [es:bx], 0x38 ;]
+    cmp byte [es:bx], 0x5d ;]
     je bf8
     cmp byte [es:bx], 0x0 ;code end
     je input
@@ -493,7 +493,7 @@ bf5:
 bf6:
     mov ah, 0h
     int 16h
-    mov [fs:bx], al
+    mov byte [fs:si], al
 bf7:
     mov cx, 1h ;inc or dec
     cmp byte [fs:si], 0h
@@ -510,9 +510,9 @@ bf78cmp:
     je bfend
 bf78next:
     add bx, cx
-    cmp byte [es:bx], 0x37 ;[
+    cmp byte [es:bx], 0x5b ;[
     je bf7837
-    cmp byte [es:bx], 0x38 ;]
+    cmp byte [es:bx], 0x5d ;]
     je bf7838
     jmp bf78next
 bf7837:
