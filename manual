@@ -51,10 +51,9 @@ Copy, c:
 The 'c' key-command require two aditional commands; the number of the file to copy, and the number of the file to copy to (source and destination). In order to make sure the computer have copied the first file, you should wait a second before entering the destination-file's number, since this is asked for after the first file has been copied.
 
 Kalculator, k:
-Results may be a maximum of 65536. Write number backwards. Then enter and a number for operation 1=add, 2=subtract, 3=multiplicate, 4=divide, 5=modulus.
-Then enter and write last number and enter.
+Results may be a maximum of 65536. Write number 1 backwards, press enter. Write number 2 backwards, press enter. Then enter a number for operation 1=add, 2=subtract, 3=multiplicate, 4=divide, 5=modulus. Result will be outputted.
 
 Brainfuck, b:
-Runs a brainfuck program. Characters have been substituted to numbers though. +=1, -=2, <=3, >=4, .=5, ,=6, [=7, ]=8 
+Runs a brainfuck program. 'b' key followed by file number. Runs file. Might work for several files following each other, to have larger programs.
 --------------------
-v0.3.3
+v0.4
