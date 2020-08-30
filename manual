@@ -57,7 +57,7 @@ Delete:
 There is no seperate delete command. In order to erase a file you can open a file to write and immediately save the file or copy an empty file into the file you want to erase. Then the file will be completly filled up with null characters (ASCII 0).
 
 Copy, c:
-The 'c' key-command require three arguments; the number of the file to copy, the number of the destination folder and the number of the destination folder. When you've written the first file number an automatic newline will be written. After the files has been copied a '`' character will be displayed.
+The 'c' key-command require three arguments; the number of the file to copy, the number of the destination folder and the number of the destination file. When you've written the first file number an automatic newline will be written. After the files has been copied a '`' character will be displayed.
 
 --------------------
 
