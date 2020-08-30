@@ -89,11 +89,11 @@ Hex, h:
 The 'h' key followed by a four digit hex number will convert the number into decimal and display the answer.
 
 Program, p:
-The 'p' key allows the user to run a binary program they've written. Program code shall be written in hexadecimal form (ascii uppercase letters) in files similar to how a .bin file looks like. For example the code in a file could be ascii: B8300ECD10EA00000010, which if run using the p command would output a 0 and then return to the OS.
+The 'p' key allows the user to run a binary program they've written. Program code shall be written in hexadecimal form (ascii uppercase letters) in files similar to how a .bin file looks like. For example the code in a file could be ascii: B8300ECD10EA00000210, which if run using the p command would output a 0 and then return to the OS.
 The 'p' command takes two 2-digit hex numbers as arguments. The first is the file number of the first file of the program (as programs are allowed to span over several files within the same folder) and the second argument is the number of consecutive files to read from the first file.
 For example if the program code written above (starting with B8) is in file 06, you can run the program by pressing the 'p' key and then type 06 (file number) and 01 (only 1 file read). This will run the example program. 
 Since programs are written in ascii form as hexadecimals, they must be converted into runnable binary code by the OS. This means each two characters in the user's source code will represent only one mneumonic. This means a 512 byte file of code, will only be 256 bytes of actual runnable code. Source code may not include newlines, spaces or other characters besides numbers and the 6 hexadecimal letters.
-When a user made program shall terminate the binary code EA00000010 (jmp 0x1000:0x0) should be run, as this will return the instruction pointer to the OS, and allow the user to continue using the OS.
+When a user made program shall terminate the binary code EA00000210 (jmp 0x1020:0x0) should be run, as this will return the instruction pointer to the OS, and allow the user to continue using the OS.
 
 Bridge, b:
 The 'b' commands allows for communication with floppy disks. The user can send files between hard drive and floppy disk. The commad takes 3 2-digit hexadecimal numbers. The first is either 00 or 80. 00 means the source is the floppy disk, 80 means the source is the hard drive. The second argument is the number of the source file, and the third argument is the destination folder in the destination disk (hard drive -> floppy disk or floppy disk -> hard drive).
