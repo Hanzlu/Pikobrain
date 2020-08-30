@@ -4,6 +4,28 @@
 ;BOOTLOADER
 ;**********
 
+jmp bootloader
+
+    db "Pikobrain v0.5.3", 0xd, 0xa
+    db "Commands in Pikobrain:", 0xd, 0xa
+    db "t : time", 0xd, 0xa
+    db "d : date", 0xd, 0xa
+    db "enter : enter", 0xd, 0xa
+    db "r : return", 0xd, 0xa
+    db "n : new", 0xd, 0xa
+    db "i : info", 0xd, 0xa
+    db "f [fold] : folder", 0xd, 0xa
+    db "w [file] : write", 0xd, 0xa
+    db "e [file] : edit", 0xd, 0xa
+    db "a [file] : ascii", 0xd, 0xa
+    db "m [file] : memory", 0xd, 0xa
+    db "c [file] [fold] [file] : copy", 0xd, 0xa
+    db "k [4hex] [4hex] [oper] : kalculator", 0xd, 0xa
+    db "h [4hex] : hex", 0xd, 0xa
+    db "p [file] [cons] : program", 0xd, 0xa
+    db "b [disk] [file] [file] : bridge", 0xd, 0xa, 0
+
+;74 byte effective bootloader
 bootloader:
 	mov ax, 0x9c0
 	mov ss, ax      ;stack segment
@@ -12,98 +34,38 @@ bootloader:
 	mov sp, 0x1000 
 
     ;read files
-    ;reset
-    mov ah, 0h
-    int 13h
     ;set buffer
     mov ax, 0x1000
     mov es, ax
     mov bx, 0x0
     ;read
-    ;check dl
-    cmp dl, 0x80 ;floppy or drive 80=hard
-    je dldrive
-    mov ax, 0x203 ;files to write 3x
+    mov ax, 0x203 ;files to read 3x
     mov cx, 1h
-    jmp bootread
-dldrive:
-    mov ax, 0x202 ;3 files except bootloader
-    mov cx, 2h
-bootread:
     int 13h
     cmp ah, 0h ;if error stop
     jne $
 
-bootwrite:
     cmp dl, 0x80 ;if drive boot
-    je drawlogo
+    je jmppb
     ;write files to hard drive
-    ;reset
-    mov ah, 0h
-    mov dl, 0h
-    int 13h
-    ;set buffer and write
-    mov ax, 0x1000
-    mov es, ax
-    mov bx, 0x0
     mov ax, 0x303 ;3x files to write
     mov cx, 1h
     mov dx, 0x80
     int 13h
-    mov dl, 0h ;floppy boot
+    mov dl, 0h ;since dl was changed
     cmp ah, 0h ;if error stop
     jne $
-
-drawlogo:
-    ;paint logo
-    mov ax, 0x7c0
-    mov es, ax
-    mov bx, 0x99 ;location of logo
-nextbox:
-    mov ax, [es:bx]
-    cmp al, 0h
-    je logo0
-    cmp al, 1h
-    je logo1
-    cmp al, 2h
-    je logo2
-    cmp al, 3h
-    je jmppb
-logo0:
-    mov al, 0x20 ;space
-    jmp paintbox
-logo1:
-    mov al, 0xb2 ;box
-    jmp paintbox
-logo2:
-    ;newline
-    mov ah, 0xe
-    mov al, 0xa
-    int 10h
-    mov al, 0xd
-paintbox:
-    mov ah, 0xe
-    int 10h
-    inc bx
-    jmp nextbox
 
 jmppb:
     cmp dl, 0x80
     jne success
     ;if drive boot
     ;await char and enter OS
-    jmp 0x1000:0x0
-
+    jmp 0x1020:0x0 ;pikobrain input
 success:
     mov ax, 0xe53 ;S
     int 10h
-
-    ;logo
-    db 1,1,1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,2 
-    db 1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2
-    db 1,1,1,0,1,0,1,1,0,0,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,0,1,2
-    db 1,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,0,0,1,0,1,0,1,0,1,0,1,2
-    db 1,0,0,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3
+    jmp $
 
     ;fill up space
     times 510-($-$$) db 0
@@ -154,7 +116,7 @@ input:
     cmp al, 0x70 ;p
     je program
     cmp al, 0x66 ;f
-    je folder
+    je callfolder
     cmp al, 0x68 ;h
     je hex
     cmp al, 0x69 ;i
@@ -277,12 +239,26 @@ setfolder:
     ;set folder
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x3ff
+    mov si, 0x5ff
     mov ax, [fs:si]
     mov dh, 0x10 ;for 8MB
     div dh
     mov ch, ah
     mov dh, al
+    ret
+
+callfolder:
+    call folder
+    jmp input
+folder:
+    ;change head and track
+    ;set folder
+    ;dh and ch for int 13h
+    mov ax, 0x1000
+    mov fs, ax
+    mov si, 0x5ff
+    call filenum
+    mov byte [fs:si], cl
     ret
 
 ramclear:
@@ -415,7 +391,7 @@ typechar:
     je backspace
     cmp al, 0xd ;enter
     je wenter 
-    cmp al, 0x7e ;~ cancel
+    cmp al, 0x9 ;tab cancel
     je input
     mov byte [es:bx], al   
     cmp bx, 0x1ff 
@@ -464,9 +440,9 @@ edit:
 copy:
     mov ax, 0x201
     push ax
-    call readfile
-    ;get filenum
-    call filenum
+    call readfile ;source
+    call folder ;dest folder
+    call filenum ;dest file
     jmp save 
 
 kalc:
@@ -577,17 +553,6 @@ pconv:
     jl pconv
     jmp 0x1300:0x0
 
-folder:
-    ;change head and track
-    ;set folder
-    ;dh and ch for int 13h
-    mov ax, 0x1000
-    mov fs, ax
-    mov si, 0x3ff
-    call filenum
-    mov byte [fs:si], cl
-    jmp input
-
 hex:
     ;convert hex to dec
     mov ax, 0x30 ;end of result
@@ -623,7 +588,7 @@ info:
     ;ouput folder number hex
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x3ff
+    mov si, 0x5ff
     mov ch, byte [fs:si]
     call xtox
     call enter
@@ -719,8 +684,8 @@ breadwrite:
     xor dl, 0x80 ;flip between 0 and 80
     jmp bset
 
-    times 11 db 0
-    db 0h ;0x1000:0x3ff -- hd head/track 
+    times 4 db 0
+    db 0h ;0x1000:0x5ff -- hd head/track 
 
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp
