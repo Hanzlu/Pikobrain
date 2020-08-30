@@ -46,7 +46,7 @@ bootwrite:
     mov ax, 0x1000
     mov es, ax
     mov bx, 0x0
-    mov ax, 0x303
+    mov ax, 0x303 ;3x files to write
     mov cx, 1h
     mov dx, 0x80
     int 13h
@@ -112,8 +112,20 @@ success:
 
 ;**********
 ;PIKOBRAIN
-;**********
-  
+;**********    
+
+    ;press any key
+    mov ah, 0h
+    int 16h
+new:
+    ;set color
+    mov ax, 0x600
+    mov bh, 0x3e
+    mov cx, 0h
+    mov dx, 0x184f
+    int 10h
+    jmp repage
+
 input:
     ;char input
     mov ah, 0h
@@ -130,7 +142,7 @@ input:
     cmp al, 0x6d ;m
     je memory
     cmp al, 0x61 ;a
-    je ascii
+    je callascii
     cmp al, 0x77 ;w
     je write
     cmp al, 0x65 ;e
@@ -143,12 +155,14 @@ input:
     je program
     cmp al, 0x66 ;f
     je folder
-    cmp al, 0x67 ;g
-    je getfolder
     cmp al, 0x68 ;h
     je hex
     cmp al, 0x69 ;i
     je info
+    cmp al, 0x6e ;n
+    je new
+    cmp al, 0x62 ;b
+    je bridge
     jmp input
 
 ;**********
@@ -346,7 +360,7 @@ mbyte:
     je input
     ;newline if row filled
     mov ax, bx
-    add ax, 1h
+    inc ax
     mov dh, 0x19
     div dh
     cmp ah, 0h
@@ -574,15 +588,6 @@ folder:
     mov byte [fs:si], cl
     jmp input
 
-getfolder:
-    ;ouput folder number hex
-    mov ax, 0x1000
-    mov fs, ax
-    mov si, 0x3ff
-    mov ch, byte [fs:si]
-    call xtox
-    jmp input
-
 hex:
     ;convert hex to dec
     mov ax, 0x30 ;end of result
@@ -614,7 +619,15 @@ hend:
     int 10h
     jmp hend
 
-info:   
+info:  
+    ;ouput folder number hex
+    mov ax, 0x1000
+    mov fs, ax
+    mov si, 0x3ff
+    mov ch, byte [fs:si]
+    call xtox
+    call enter
+    ;output files 
     mov di, 0h ;counter
     ;get file info in folder
     ;buffer
@@ -643,7 +656,7 @@ iwloop:
     ;write 5 chars
     mov al, byte [es:bx]
     cmp al, 0x20
-    jg iw
+    jge iw
     mov al, 0x2a ;*
 iw:
     mov ah, 0xe
@@ -662,7 +675,7 @@ iwend:
 ilend:
     pop cx
     inc cl
-    cmp cl, 0x3f ;last file
+    cmp cl, 0x40 ;last file
     je input
     ;prepare read
     call setfolder
@@ -677,11 +690,37 @@ idi3:
     call enter
     mov di, 0h
     jmp iloop
-       
 
-    ;fill up space
-    times 76 db 0
-    db 0h ;0x1000:0x3ff -- hd head/track
+bridge:
+    ;buffer
+    mov ax, 0x1200
+    mov es, ax
+    mov bx, 0h
+    ;drive
+    mov ax, 0x201
+    push ax
+    call filenum
+    mov dl, cl
+bset:
+    ;rest of registers
+    call setfolder
+    call filenum
+    pop ax
+    push ax
+breadwrite:
+    int 13h ;r/w
+    ;if read
+    pop ax
+    cmp ah, 3h
+    je input
+    ;prepare write
+    mov ah, 3h
+    push ax
+    xor dl, 0x80 ;flip between 0 and 80
+    jmp bset
+
+    times 11 db 0
+    db 0h ;0x1000:0x3ff -- hd head/track 
 
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp

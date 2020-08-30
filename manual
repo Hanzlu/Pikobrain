@@ -4,14 +4,15 @@ by Hanzlu (2019-2020)
 
 INTRODUCTION
 --------------------
-Pikobrain is an operative system coded by Hanzlu starting in 2019. I had for some time been interested in making very low level programming languages and wanted to make them work on a real computer, so I decided I would make an operative system where such languages could be used. However, the more I coded for the OS the more I forgot about the original reason, and the OS turned out to be more of a MS-DOS inspired OS but much worse and less usable, intentionally. At the moment, I try to make an OS you can use for simple normal tasks, but it's less usable and user-friendly. With the introduction of version 0.5, Pikobrain has become more user-friendly, but compared to other OSes it's still pretty much not. 
+Pikobrain is an operating system coded by Hanzlu starting in 2019. I had for some time been interested in making very low level programming languages and wanted to make them work on a real computer, so I decided I would make an operative system where such languages could be used. However, the more I coded for the OS the more I forgot about the original reason, and the OS turned out to be more of a MS-DOS inspired OS but much worse and less usable, intentionally. At the moment, I try to make an OS you can use for simple normal tasks, but uses as little code as possible while still having some user-friendliness (I guess it is a Forth). With the introduction of version 0.5, Pikobrain has become more user-friendly, but compared to other OSes it's still pretty much not. 
 
 The OS optimally works on an 8MB hard drive and 1MB of RAM. The OS does not have a proper file system but can give access to 8MB of hard disk space.
+The effective part of the bootloader is only 88 bytes of binary code. The rest draws the logo. The OS itself (excluding the bootloader) is 1MB of binary code. It includes the ability to edit files, a calculator, a hex to dec convertor, ability to read/write to/from floppy disks as well as a few more things.
 
 INSTALLATION
 --------------------
 In the Github repository you can find three os.* files (of types .asm, .bin and .flp). The os.asm file is the assembly code, os.bin the binary code and os.flp the floppy image. I've used VirtualBox for running the OS. When installing Pikobrain you "insert" the os.flp file into the floppy drive and start the virtual machine. If the installation is succesful you'll see "PIKOBRAIN" in large text and an S representing "Success". If there is some sort of failure during the installation you'll not see the "logo". 
-When Pikobrain has been installed correctly you'll remove the os.flp file and reboot (from the hard drive) the machine. If the boot is succesfull you'll see the "PIKOBRAIN" text again, but without the S. You can now use Pikobrain. Try the t command for example.
+When Pikobrain has been installed correctly you'll remove the os.flp file and reboot (from the hard drive) the machine. If the boot is succesfull you'll see the "PIKOBRAIN" text again, but without the S. Press any key and now you can use Pikobrain. Try the t command for example.
 
 COMMANDS
 --------------------
@@ -66,11 +67,8 @@ Pikobrain has 256 folders (00-FF) which can be accessed by the user. Each folder
 Folder, f:
 The 'f' key followed by a folder number (two digit hex number) changes the folder to the entered folder number (similar to cd in MS-DOS). The folder number remains until changed or the computer reboots.
 
-Getfolder, g:
-The 'g' key will display the current folder number in hex.
-
 Info, i:
-The 'i' key will display a list of files within the current folder that has content. It will display the file number followed by a dot and the first 5 characters of the file. This allows the use of filenames. The first 5 characters of a file can be its name. Files which include characters beyond the ascii 21-7F (hex) scope will be written as a '*' instead. This makes it possible to see which files are binary, as they include 'unconventional' characters as well such as ascii (hex) 0D and B8. 
+The 'i' key display information about the current folder. It will display the folder number and the files which has content within the folder. If a file has content you'll see its number followed by a dot and the 5 first characters of the file. This allows the use of filenames. The first 5 characters of a file can be its name. Files which include characters beyond the ascii 20-7F (hex) scope will be written as a '*' instead. This makes it possible to see which files are binary, as they include 'unconventional' characters as well, such as ascii (hex) 0D and B8.
 
 Other
 ------
@@ -95,6 +93,9 @@ The 'p' command takes two 2-digit hex numbers as arguments. The first is the fil
 For example if the program code written above (starting with B8) is in file 06, you can run the program by pressing the 'p' key and then type 06 (file number) and 01 (only 1 file read). This will run the example program. 
 Since programs are written in ascii form as hexadecimals, they must be converted into runnable binary code by the OS. This means each two characters in the user's source code will represent only one mneumonic. This means a 512 byte file of code, will only be 256 bytes of actual runnable code. Source code may not include newlines, spaces or other characters besides numbers and the 6 hexadecimal letters.
 When a user made program shall terminate the binary code EA00000010 (jmp 0x1000:0x0) should be run, as this will return the instruction pointer to the OS, and allow the user to continue using the OS.
+
+Bridge, b:
+The 'b' commands allows for communication with floppy disks. The user can send files between hard drive and floppy disk. The commad takes 3 2-digit hexadecimal numbers. The first is either 00 or 80. 00 means the source is the floppy disk, 80 means the source is the hard drive. The second argument is the number of the source file, and the third argument is the destination folder in the destination disk (hard drive -> floppy disk or floppy disk -> hard drive).
 
 ------
 v0.5
