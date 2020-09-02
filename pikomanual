@@ -1,0 +1,142 @@
+PIKOBRAIN MANUAL v1.0
+Hanzlu (2019-2020)
+---------------------
+
+INTRODUCTION
+------------
+
+Pikobrain is a very small operating system of only 2kB, which still provides the user with all the basic commands to edit files, code, and so on. The operating system
+is completely written in 16-bit assembly language (NASM). Pikobrain uses the hexadecimal number system. The keyboard is automatically US character set.
+Lines starting with ** are technical details.
+
+INSTALLATION
+------------
+
+Pikobrain should have access to 1MB of RAM. Hard disk space should be between at least a few kB to a maximum of about 8GB. Keyboard and screen are also essential, as 
+well as a USB port for booting on real hardware.
+** Pikobrain should have at least about 150kB of RAM, but it is recommended to have at least 1MB which is the maximum it can access.
+
+In VirtualBox the os.flp file can be used to boot the OS from a virtual floppy disk.
+On real hardware USB drives has been tested and worked. On linux you can use the ' sudo dd if=os.bin of=/dev/sdb ' command to write the os.bin file to a USB drive.
+However, the sdb part might be different for other people (check the ' dmesg ' command).
+
+Boot from the USB. If the boot is sucessfull you shall see a two digit number followed by an S ("Success"). This means the OS has been installed successfully on your hard drive (hopefully). 
+**If the two digit number is 80, there might be issues, but there has not yet been for me.
+
+Now remove the USB and boot from the hard drive. If the boot is successfull your screen should turn light blue. You are now in Pikobrain. Try the t command for example.
+
+COMMANDS
+--------
+
+Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or more digits) hexadecimal numbers (most of the time). Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). Here is a list of the commands you can use within Pikobrain and how they work:
+
+t, time:
+Displays the current time in hh:mm:ss format.
+
+d, date:
+Displays the current date in yyyy/mm/dd format.
+
+enter, enter:
+Newline and carriage return as expected.
+
+n, new:
+Clears the screen and moves the cursor to the top left.
+
+The following commands take multi digit numbers as arguments. They are always of a certain lenght which means that if you want to enter the number 1, you will have to
+write 0001 for example, by adding zeros in the begining.
+
+k, kalculator:
+Enter a four digit hexadecimal number. A newline will automatically be written. Enter a second four digit hexadecimal number. Then press a number key for operation
+according to this list:
+1=add
+2=subtract
+3=multiply
+4=divide
+5=modulus (remainder in division)
+6=and
+7=or
+8=xor
+9=not
+
+6-9 are bitwise operations.
+You should then be displayed with a four digit hexadecimal number which is the answer.
+
+h, hex:
+Enter a four digit hexadecimal number. You will be displayed with the number converted into decimal.
+
+x, xdec:
+Enter a 5 digit decimal number (max 65535). You will be displayed with the number converted into hexadecimal.
+
+o, os:
+Displays information about the computer. All numbers are in hexadecimal.
+First number is RAM space in hexadecimal and unit kB.
+Second number is the number of the boot device. If you have booted from hard drive you must make sure the number is 80. Else file operations will not work. Please
+contact Hanzlu if the number is different.
+Third number is the highest folder number you can enter. This number should always be known by the user. It shall also be known that the number is three 2-digit hexadecimal numbers and each of the numbers can not be higher than it is. For example my test machine displayes the number 03FEFE, which means I cannot enter folder
+03FEFF, because that exceeds the limit of the third 2-digit hexadecimal number. More info about folders in the FOLDERS and FILES categories.
+Fourth number is the highest file you can access within a single folder.
+
+FOLDERS
+-------
+
+You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen, I don't know I haven't tried.
+The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access 8GB max. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
+You are always in folder 000000 when you enter the operating system. Files 01-04 are reserved for the operating system, do not edit them if you do not know what you 
+are doing.
+
+f, folder:
+Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits.
+
+i, info:
+Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that are not empty will be
+displayed. Files are displayed with their number, followed by a dot and the first 5 characters of the file. The first 5 characters can therefore be used as a file name.
+Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
+
+z, zero:
+Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake.
+
+s, search:
+Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them.
+
+FILES
+-----
+
+In order to access a file you enter a file number after a file manipulation command. A file number is normally in the range 00-3F (hex) (check the o command).
+Files in Pikobrain are automatically 512 bytes long. You can't change this.
+
+w, write:
+Enter a file number. You can now write a file. You can use the enter button and the backspace button. However, the backspace button will GRAPHICALLY only work on the
+current line you are on, but will erase characters as expected on earlier lines as well. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII). So in order to erase a newline you must press backspace two times.
+In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
+press the tab key. This should display a small circle.
+If you write 512 characters you reach the file size limit in Pikobrain. The file will be automatically saved. If you save a file before reaching the limit, the rest of the space will be filled with null characters (ASCII 0).
+
+e, edit:
+Works the same way as the w command but will display the file content and allow you to continue writing from where you saved the file.
+
+r, read:
+Enter a file number. The file will be displayed in ASCII format.
+**Characters are read until a null character is found.
+
+m, memory:
+Works like the r command but displays the file in hexadecimal form, like a .bin file.
+
+c, copy:
+Enter a file number for the source file. Enter the destination folder's number (6 digit hexadecimal number). Enter source file's number. A ` character shall be
+displayed and the file has been copied.
+
+CODING
+------
+
+Pikobrain makes it possible to code. You can code in hexadecimal assembly, like the .bin files. Code is written in hexadecimal form as a norma text file using the w
+command. No spaces or newlines are allowed in the code, neither are comments. Code is written like this: B8300ECD10EA00002010
+The above code, if run, would output a 0 and then give back control to the operating system. All user made programs should when ended, run the EA00002010 command which
+gives back control to the operating system (jmp 0x1020:0x0). It might also be adviced to use the ' int 16h ' interrupt to await a key press before return control to the
+operating system.
+Since code is written in ASCII format, each two characters in the code will only represent one opcode. This means a 512 byte file can at max represent 256 bytes of 
+assembly code. It is possible to span code over several files in the same folder by continue writing in the next folder after one folder has been filled to the 512 byte limit.
+
+p, program:
+Enter the file number of the first file in the user made code/program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. This allows program to be larger than the 512 byte file limit.
+
+
