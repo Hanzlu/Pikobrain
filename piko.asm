@@ -6,6 +6,28 @@
 
 jmp bootloader
 
+    db "Pikobrain v1.1", 0xd, 0xa
+    db "Hanzlu 2019-2020", 0xd, 0xa
+    db "Commands:", 0xd, 0xa
+    db "t time", 0xd, 0xa
+    db "d date", 0xd, 0xa
+    db "enter", 0xd, 0xa
+    db "n new", 0xd, 0xa
+    db "o os", 0xd, 0xa
+    db "k [4h] [4h] [1d] kalc", 0xd, 0xa
+    db "h [4h] hex", 0xd, 0xa
+    db "x [5d] xdec", 0xd, 0xa
+    db "f [fo] folder", 0xd, 0xa
+    db "s [str] search", 0xd, 0xa
+    db "i info", 0xd, 0xa
+    db "z zero", 0xd, 0xa
+    db "w [fi] write", 0xd, 0xa
+    db "e [fi] edit", 0xd, 0xa
+    db "r [fi] read", 0xd, 0xa
+    db "m [fi] memory", 0xd, 0xa
+    db "c [fi] [fo] [fi] copy", 0xd, 0xa
+    db "p [fi] [2h] program"
+
     ;variables
     bootdrive db 0h
     heads db 0h
@@ -185,20 +207,16 @@ enter:
     ret
 
 readfile:
-    call ramclear
-    mov dl, 0x80 ;drive
-    call setfolder
-    ;get filenum
-    call filenum
-    and cl, 0x3f ;remove high order bits
-    ;read file
     ;set buffer
     mov ax, 0x1200
     mov es, ax
-    pop bx
-    pop ax ;ax was pushed
-    push bx ;automatic
     mov bx, 0x0
+    call filenum
+    and cl, 0x3f ;remove high order bits
+    call setfolder
+    ;get filenum
+    mov ax, 0x201
+    mov dl, 0x80 ;drive
     int 13h
     ret
 
@@ -223,20 +241,17 @@ dxtod: ;decimalhex to dec
 xtox: ;hex to hex
     ;ch contains number
     ;output ch as hex
-    mov bl, 0x10
-    mov ah, 0h
     mov al, ch
-    div bl
-    ;output numbers
+    and al, 0xf ;clear upper nibble
     call xtoasc
-    mov bh, al
-    mov al, ah
-    call xtoasc
-    mov bl, al
+    mov ah, al ;store
+    mov al, ch
+    shr al, 4h
+    call xtoasc ;convert
+    mov ch, ah ;store
     mov ah, 0xe
-    mov al, bh
     int 10h
-    mov al, bl
+    mov al, ch
     int 10h
     ret
 
@@ -314,17 +329,6 @@ folder:
     call enter
     ret
 
-ramclear:
-    mov ax, 0x1200
-    mov es, ax
-    mov bx, 0h
-ramloop:
-    mov byte [es:bx], 0h
-    inc bx
-    cmp bx, 0x200
-    jne ramloop
-    ret
-
 ;*********
 ;COMMANDS
 ;*********   
@@ -365,18 +369,14 @@ time:
     jmp input	
 
 memory:
-    mov ax, 0x201
-    push ax
     call readfile
     call enter
 mbyte:
     ;get content of byte
-    push bx ;pointer
     mov ch, byte [es:bx]
     call xtox
     mov al, 0x20 ;space
     int 10h
-    pop bx ;byte pointer
     cmp bx, 0x1ff ;reading 512 bytes
     je input
     ;newline if row filled
@@ -397,8 +397,6 @@ callread:
     jmp input
 read:
     ;read file as ASCII chars
-    mov ax, 0x201
-    push ax
     call readfile
     call enter
 nextread:
@@ -415,15 +413,12 @@ readend:
     ret
 
 write:
-    ;clear ram
-    call ramclear
+    mov ax, 0x1200
+    mov es, ax
+    mov bx, 0h
     ;get file number
     call filenum
     call enter
-    ;move pointer
-    mov ax, 0x1200
-    mov es, ax
-    mov bx, 0x0
 typechar:
     ;get char to write    
     mov ah, 0h
@@ -433,7 +428,7 @@ typechar:
     int 10h
     ;special chars
     cmp al, 0x60 ;` save
-    je save    
+    je saveram    
     cmp al, 0x8 ;backspace
     je backspace
     cmp al, 0xd ;enter
@@ -461,20 +456,25 @@ wenter:
     mov ax, 0xe0a
     int 10h
     jmp typechar ;can exceed 512 limit
+saveram:
+    mov byte [es:bx], 0h
+    inc bx
+    cmp bx, 0x200
+    jne saveram
 save:
-    mov ax, 0xe60 ;`
-    int 10h
     ;set buffer and write
     mov ax, 0x1200
     mov es, ax
     mov bx, 0x0
-    mov dl, 0x80
-    ;set ch and dh
-    call setfolder    
+    mov dl, 0x80   
     ;cl is already set
     and cl, 0x3f ;remove high order bits
+    ;set ch and dh
+    call setfolder 
     mov ax, 0x301
     int 13h
+    mov ax, 0xe60 ;`
+    int 10h
     jmp input 
 
 edit:
@@ -485,12 +485,9 @@ edit:
     jmp typechar
     
 copy:
-    mov ax, 0x201
-    push ax
     call readfile ;source
     call enter
     call folder ;dest folder
-    call enter
     call filenum ;dest file
     jmp save 
 
@@ -677,13 +674,13 @@ info:
     mov es, ax
     mov bx, 0h
     ;other stuff
-    call setfolder
     mov cl, 1h ;changes later
+    call setfolder
     mov dl, 0x80
     mov ax, 0x201
     int 13h ;read
+    and cl, 0x3f ;clear upper bits
 iloop:
-    push cx ;store
     mov al, byte [es:bx]
     cmp al, 0h
     je ilend
@@ -692,7 +689,7 @@ iloop:
     call xtox
     mov ax, 0xe2e ;.
     int 10h
-    mov cl, 0h ;char counter
+    mov ch, 0h ;char counter
     mov bx, 0h
 iwloop:
     ;write 5 chars
@@ -703,8 +700,8 @@ iwloop:
 iw:
     mov ah, 0xe
     int 10h
-    inc cl
-    cmp cl, 5h
+    inc ch
+    cmp ch, 5h
     je iwend
     inc bx
     jmp iwloop
@@ -715,7 +712,6 @@ iwend:
     int 10h ;3 times
     inc di
 ilend:
-    pop cx
     inc cl
     cmp cl, 0x40 ;last file
     je input
@@ -723,7 +719,8 @@ ilend:
     call setfolder
     mov ax, 0x201
     mov bx, 0h
-    int 13h 
+    int 13h
+    and cl, 0x3f ;clear upper bits 
     ;check di
     cmp di, 3h
     je idi3 
@@ -740,17 +737,18 @@ zero:
     int 16h
     cmp al, 0x79 ;y
     jne input
-    call ramclear
     ;buffer
     mov ax, 0x1200
     mov es, ax
     mov dl, 80h
-    call setfolder
     mov cl, 1h
 zloop:   
     ;read
+    call setfolder
     mov ax, 0x201
+    mov bx, 0h ;must be here!
     int 13h
+    and cl, 0x3f ;clear upper bits
 zread:
     mov al, byte [es:bx]
     cmp al, 0h ;end of content
@@ -762,10 +760,12 @@ zread:
 zwrite:
     cmp bx, 0h ;empty file
     je zend
+    call setfolder
     mov bx, 0h
     ;write
     mov ax, 0x301
     int 13h
+    and cl, 0x3f ;clear upper bits
 zend:
     inc cl
     cmp cl, 0x40 ;end of folder
@@ -774,41 +774,40 @@ zend:
 
 search:
     mov ax, 0x1110
-    mov fs, ax
-    mov si, 0x0 ;fs:si search word
+    mov gs, ax
+    mov di, 0x0 ;fs:si search word
 sword:
     ;get char
     mov ah, 0h
     int 16h
-    mov byte [fs:si], al ;store
+    mov byte [gs:di], al ;store
     ;if enter=end
     cmp al, 0xd
     je sstart
     ;output
     mov ah, 0xe
     int 10h    
-    inc si
+    inc di
     jmp sword
 sstart:
     call enter
-    call ramclear
     ;buffer
     mov ax, 0x1200
     mov es, ax
+    mov bx, 0h
     mov cl, 1h
 sloop:
     call setfolder
-    mov ax, 0x1110
-    mov fs, ax
-    mov si, 0h ;reset
+    mov di, 0h ;reset
     ;read
     mov dl, 80h
-    mov bx, 0h
+    mov bx, 0h ;must be here!
     mov ax, 0x201
     int 13h
+    and cl, 0x3f ;clear upper bits
 scomp:
     mov al, byte [es:bx]
-    mov dl, byte [fs:si]
+    mov dl, byte [gs:di]
     cmp dl, 0xd
     je sfind
     cmp al, dl
@@ -816,7 +815,7 @@ scomp:
     jmp snot
 snext:
     inc bx
-    inc si
+    inc di
     jmp scomp
 sfind:
     mov ch, cl
@@ -825,7 +824,6 @@ sfind:
     int 10h
     jmp sfile
 snot:
-    mov si, 0h
     inc bx
     cmp bx, 0x200
     je sfile
@@ -935,7 +933,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 94 db 0
+    times 121 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 

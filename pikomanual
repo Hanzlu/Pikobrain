@@ -115,7 +115,7 @@ e, edit:
 Works the same way as the w command but will display the file content and allow you to continue writing from where you saved the file.
 
 r, read:
-Enter a file number. The file will be displayed in ASCII format.
+Enter a file number. The file will be displayed in ASCII format. Read file 01 in folder 000000 and you'll get a list of Pikobrain commands.
 **Characters are read until a null character is found.
 
 m, memory:
