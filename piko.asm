@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.1.2", 0xd, 0xa
+    db "Pikobrain v1.1.3", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -20,7 +20,7 @@ jmp bootloader
     db "f [fo] folder", 0xd, 0xa
     db "s [str] search", 0xd, 0xa
     db "i info", 0xd, 0xa
-    db "z zero", 0xd, 0xa
+    db "z ['y'] zero", 0xd, 0xa
     db "w [fi] write", 0xd, 0xa
     db "e [fi] edit", 0xd, 0xa
     db "r [fi] read", 0xd, 0xa
@@ -97,7 +97,7 @@ bootdl2:
     cmp al, 1h
     jne jmppb
     ;mark as installed
-    mov byte [es:bx], ah ;set as 0
+    mov byte [es:bx], 0h ;set as 0
     cmp dl, 0x80 ;if USB boot
     je boot81
     mov dx, 0x80
@@ -424,19 +424,21 @@ write:
     mov bx, 0h
     ;get file number
     call filenum
+    push cx
     call enter
 typechar:
     ;get char to write    
     mov ah, 0h
     int 16h
+    ;check if backspace
+    cmp al, 0x8 ;backspace
+    je backspace
     ;write character typed
     mov ah, 0xe
     int 10h
     ;special chars
     cmp al, 0x60 ;` save
     je saveram    
-    cmp al, 0x8 ;backspace
-    je backspace
     cmp al, 0xd ;enter
     je wenter 
     cmp al, 0x9 ;tab cancel
@@ -449,41 +451,45 @@ typechar:
     inc bx  
     jmp typechar
 backspace:
-    dec bx
-    mov al, byte [es:bx]
-    cmp al, 0xa ;newline
-    je wbnl
-    mov ax, 0xe00
-    int 10h
-    mov byte [es:bx], al
-    mov al, 0x8 ;backspace
-    int 10h
-    jmp typechar
-wbnl:
-    ;remove newline and move cursor
-    mov al, 0h
-    mov byte [es:bx], al ;clear 0xa
-    dec bx
-    mov byte [es:bx], al ;clear 0xd
-    ;move cursor
-    mov al, cl ;store
     ;get cursor position
     mov ah, 3h
     int 10h
-    mov cl, al ;reset
+    ;output backspace
+    mov ax, 0xe08
+    int 10h
+    dec bx
+    mov cl, byte [es:bx] ;store
+    mov byte [es:bx], 0h ;clear byte (and 0xa in case \n)
+    cmp dl, 0h ;newline erase? (cursor pos)
+    je wbnl
+wbauto: ;epic hack jump from wbnl
+    mov ax, 0xa20 ;for backspace newline
+    int 10h
+    jmp typechar
+wbnl:
     ;move cursor
-    dec ah ;2h
+    mov ah, 2h
     dec dh
     mov dl, 0x4f ;79
     int 10h
+    cmp cl, 0xa ;was stored, check if newline
+    jne wbauto
+    ;remove newline
+    dec bx
+    mov byte [es:bx], 0h ;clear 0xd
 wbnloop:
     ;get cursor char
     mov ah, 8h
     int 10h
     cmp al, 0x20 ;space apparently
     jne wbnlend
+    ;get cursor position
+    mov ah, 3h
+    int 10h
+    cmp dl, 0h ;beginning of line
+    je typechar
     ;mov cursor left
-    mov ah, 2h
+    dec ah ;2h
     dec dl
     int 10h
     jmp wbnloop
@@ -492,7 +498,7 @@ wbnlend:
     mov ah, 2h
     inc dl
     int 10h
-    jmp typechar 
+    jmp typechar
 wenter:
     mov byte [es:bx], 0xd
     inc bx
@@ -505,22 +511,19 @@ wspecial:
     ;get special char code
     mov ax, 0xe08 ;backspace
     int 10h
-    mov dh, cl
     ;get charcode
     call filenum
     mov byte [es:bx], cl
     ;clear filenum chars
     mov ax, 0xe08
     int 10h
-    mov al, 0x00
+    mov ax, 0xa20 ;space for backspace
     int 10h
-    mov al, 0x8
-    int 10h
+    mov ax, 0xe08
     int 10h
     ;output special char
     mov al, cl
     int 10h
-    mov cl, dh
     inc bx
     jmp typechar
 saveram:
@@ -530,11 +533,9 @@ saveram:
     jne saveram
 save:
     ;set buffer and write
-    mov ax, 0x1200
-    mov es, ax
-    mov bx, 0x0
+    mov bx, 0x0 ;reset
     mov dl, 0x80   
-    ;cl is already set
+    pop cx
     and cl, 0x3f ;remove high order bits
     ;set ch and dh
     call setfolder 
@@ -668,7 +669,7 @@ program:
     mov dl, 0x10 ;multplier
 pconv:
     ;convert ascii hex to hex
-    mov ax, [es:bx]
+    mov ax, word [es:bx]
     ;make ascii into int
     call atohex
     mul dl
@@ -822,8 +823,7 @@ zread:
     mov al, byte [es:bx]
     cmp al, 0h ;end of content
     je zwrite
-    mov al, 0h
-    mov byte [es:bx], al
+    mov byte [es:bx], 0h
     inc bx
     jmp zread
 zwrite:
@@ -1002,7 +1002,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 2 db 0
+    times 1 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 

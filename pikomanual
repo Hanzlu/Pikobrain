@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.1.2
+PIKOBRAIN MANUAL v1.1.3
 Hanzlu (2019-2020)
 ---------------------
 
@@ -106,11 +106,8 @@ In order to access a file you enter a file number after a file manipulation comm
 Files in Pikobrain are automatically 512 bytes long. You can't change this.
 
 w, write:
-Enter a file number. You can now write a file. You can use the enter button and the backspace button. If you type a whole row full, such that an automatic 'newline'
-is made, backspace will not be able to recognize the newline. So it is suggested to always manually create newlines before a whole screen row is filled. Also, 
-backspace will work a bit unexpectedly if there are several newlines on a row. However, it will erase as expected, and in the end, when all consecutive newlines are
-erased, it will work as supposed. 
-Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
+Enter a file number. You can now write a file. You can use the enter button and the backspace button. There is one known limitation to the backspace button. You may not 
+type spaces before a newline character. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
 press the tab key. This should display a small circle.
