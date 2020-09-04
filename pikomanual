@@ -17,8 +17,8 @@ Pikobrain should have access to 1MB of RAM. Hard disk space should be between at
 well as a USB port for booting on real hardware. The CPU should be i386 or newer (fs and gs registers), and allow for 20-bit segmentation.
 ** Pikobrain should have at least about 150kB of RAM, but it is recommended to have at least 1MB which is the maximum it can access.
 
-In VirtualBox the os.flp file can be used to boot the OS from a virtual floppy disk.
-On real hardware USB drives has been tested and worked. On linux you can use the ' sudo dd if=os.bin of=/dev/sdb ' command to write the os.bin file to a USB drive.
+In VirtualBox the piko.flp file can be used to boot the OS from a virtual floppy disk.
+On real hardware USB drives has been tested and worked. On linux you can use the ' sudo dd if=piko.bin of=/dev/sdb ' command to write the piko.bin file to a USB drive.
 However, the sdb part might be different for other people (check the ' dmesg ' command).
 
 Boot from the USB. If the boot is sucessfull you shall see a two digit number followed by an S ("Success"). This means the OS has been installed successfully on your hard drive (hopefully). 
