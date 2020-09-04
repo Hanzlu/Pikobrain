@@ -316,6 +316,8 @@ folder:
     mov fs, ax
     mov si, 0x7fd
     call filenum
+    cmp cl, 0h ;double press enter to select current folder
+    jl fend
     and cl, 3h ;clear bits
     mov [fs:si], cl
     inc si
@@ -327,6 +329,10 @@ folder:
     call filenum
     mov [fs:si], cl 
     call enter
+    ret
+fend:
+    mov ax, 0xe2a ;*
+    int 10h
     ret
 
 ;*********
@@ -405,7 +411,7 @@ nextread:
     int 10h
     cmp al, 0h
     je readend
-    cmp bx, 0x1ff
+    cmp bx, 0x200 ;because of edit
     je readend
     inc bx
     jmp nextread
@@ -435,6 +441,8 @@ typechar:
     je wenter 
     cmp al, 0x9 ;tab cancel
     je input
+    cmp al, 0x5c ;\ special char
+    je wspecial
     mov byte [es:bx], al   
     cmp bx, 0x1ff 
     je save   
@@ -456,6 +464,28 @@ wenter:
     mov ax, 0xe0a
     int 10h
     jmp typechar ;can exceed 512 limit
+wspecial:
+    ;get special char code
+    mov ax, 0xe08 ;backspace
+    int 10h
+    mov dh, cl
+    ;get charcode
+    call filenum
+    mov byte [es:bx], cl
+    ;clear filenum chars
+    mov ax, 0xe08
+    int 10h
+    mov al, 0x00
+    int 10h
+    mov al, 0x8
+    int 10h
+    int 10h
+    ;output special char
+    mov al, cl
+    int 10h
+    mov cl, dh
+    inc bx
+    jmp typechar
 saveram:
     mov byte [es:bx], 0h
     inc bx
@@ -735,6 +765,8 @@ zero:
     int 10h
     mov ah, 0h
     int 16h
+    mov ah, 0xe
+    int 10h
     cmp al, 0x79 ;y
     jne input
     ;buffer
@@ -746,7 +778,7 @@ zloop:
     ;read
     call setfolder
     mov ax, 0x201
-    mov bx, 0h ;must be here!
+    mov bx, 0h ;must be here! reset
     int 13h
     and cl, 0x3f ;clear upper bits
 zread:
@@ -775,7 +807,7 @@ zend:
 search:
     mov ax, 0x1110
     mov gs, ax
-    mov di, 0x0 ;fs:si search word
+    mov di, 0x0 ;gs:di search word
 sword:
     ;get char
     mov ah, 0h
@@ -801,7 +833,7 @@ sloop:
     mov di, 0h ;reset
     ;read
     mov dl, 80h
-    mov bx, 0h ;must be here!
+    mov bx, 0h ;must be here! reset
     mov ax, 0x201
     int 13h
     and cl, 0x3f ;clear upper bits
@@ -933,7 +965,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 121 db 0
+    times 64 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 

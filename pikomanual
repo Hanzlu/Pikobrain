@@ -9,11 +9,12 @@ Pikobrain is a very small operating system of only 2kB, which still provides the
 is completely written in 16-bit assembly language (NASM). Pikobrain uses the hexadecimal number system. The keyboard is automatically US character set.
 Lines starting with ** are technical details.
 
+
 INSTALLATION
 ------------
 
 Pikobrain should have access to 1MB of RAM. Hard disk space should be between at least a few kB to a maximum of about 8GB. Keyboard and screen are also essential, as 
-well as a USB port for booting on real hardware.
+well as a USB port for booting on real hardware. The CPU should be i386 or newer (fs and gs registers), and allow for 20-bit segmentation.
 ** Pikobrain should have at least about 150kB of RAM, but it is recommended to have at least 1MB which is the maximum it can access.
 
 In VirtualBox the os.flp file can be used to boot the OS from a virtual floppy disk.
@@ -93,7 +94,7 @@ displayed. Files are displayed with their number, followed by a dot and the firs
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
 
 z, zero:
-Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake.
+Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake. You will be displayed with the character you press.
 
 s, search:
 Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them.
@@ -110,6 +111,7 @@ current line you are on, but will erase characters as expected on earlier lines 
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
 press the tab key. This should display a small circle.
 If you write 512 characters you reach the file size limit in Pikobrain. The file will be automatically saved. If you save a file before reaching the limit, the rest of the space will be filled with null characters (ASCII 0).
+You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope.
 
 e, edit:
 Works the same way as the w command but will display the file content and allow you to continue writing from where you saved the file.
