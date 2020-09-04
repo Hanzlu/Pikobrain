@@ -89,15 +89,15 @@ f, folder:
 Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits.
 
 i, info:
-Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that are not empty will be
-displayed. Files are displayed with their number, followed by a dot and the first 5 characters of the file. The first 5 characters can therefore be used as a file name.
+Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that do not have a ASCII 00 (hex) character as its first character will be displayed. 
+Files are displayed with their number, followed by a dot and the first 5 characters of the file. The first 5 characters can therefore be used as a file name.
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
 
 z, zero:
 Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake. You will be displayed with the character you press.
 
 s, search:
-Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them.
+Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them. Press enter to start sesarch.
 
 FILES
 -----
@@ -106,8 +106,8 @@ In order to access a file you enter a file number after a file manipulation comm
 Files in Pikobrain are automatically 512 bytes long. You can't change this.
 
 w, write:
-Enter a file number. You can now write a file. You can use the enter button and the backspace button. There is one known limitation to the backspace button. You may not 
-type spaces before a newline character. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
+Enter a file number. You can now write a file. You can use the enter button and the backspace button. There is one known limitation to the backspace button. You MAY NOT 
+type spaces before a newline character, else backspace will work a bit unexpectedly. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
 press the tab key. This should display a small circle.
@@ -142,6 +142,6 @@ Since code is written in ASCII format, each two characters in the code will only
 assembly code. It is possible to span code over several files in the same folder by continue writing in the next folder after one folder has been filled to the 512 byte limit.
 
 p, program:
-Enter the file number of the first file in the user made code/program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. This allows program to be larger than the 512 byte file limit.
+Enter the file number of the first file in the user made code/program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. This allows program to be larger than the 512 byte file limit. Write code in consecutive files to create larger programs.
 
 
