@@ -129,7 +129,9 @@ Works like the r command but displays the file in hexadecimal form, like a .bin 
 
 c, copy:
 Enter a file number for the source file. Enter the destination folder's number (6 digit hexadecimal number). Enter source file's number. A ` character shall be
-displayed and the file has been copied.
+displayed and the file has been copied. 
+When entering the folder number, you can instead double press the enter key. This should display a * character and tell the OS that you want to use the current folder.
+Then enter the destination file's number as normal.
 
 CODING
 ------
