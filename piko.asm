@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.1", 0xd, 0xa
+    db "Pikobrain v1.1.2", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -450,12 +450,49 @@ typechar:
     jmp typechar
 backspace:
     dec bx
+    mov al, byte [es:bx]
+    cmp al, 0xa ;newline
+    je wbnl
     mov ax, 0xe00
     int 10h
     mov byte [es:bx], al
     mov al, 0x8 ;backspace
     int 10h
     jmp typechar
+wbnl:
+    ;remove newline and move cursor
+    mov al, 0h
+    mov byte [es:bx], al ;clear 0xa
+    dec bx
+    mov byte [es:bx], al ;clear 0xd
+    ;move cursor
+    mov al, cl ;store
+    ;get cursor position
+    mov ah, 3h
+    int 10h
+    mov cl, al ;reset
+    ;move cursor
+    dec ah ;2h
+    dec dh
+    mov dl, 0x4f ;79
+    int 10h
+wbnloop:
+    ;get cursor char
+    mov ah, 8h
+    int 10h
+    cmp al, 0x20 ;space apparently
+    jne wbnlend
+    ;mov cursor left
+    mov ah, 2h
+    dec dl
+    int 10h
+    jmp wbnloop
+wbnlend:
+    ;cursor right
+    mov ah, 2h
+    inc dl
+    int 10h
+    jmp typechar 
 wenter:
     mov byte [es:bx], 0xd
     inc bx
@@ -965,7 +1002,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 64 db 0
+    times 2 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 
