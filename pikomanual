@@ -94,7 +94,9 @@ Files are displayed with their number, followed by a dot and the first 5 charact
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
 
 z, zero:
-Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake. You will be displayed with the character you press.
+Fills all files within a folder with ASCII 0 (null) characters. In other words, deletes the files. It fills all files that do not have an ASCII 0 (null) character as its
+first character, as those files are seen as empty by the OS. 
+In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake. You will be displayed with the character you press.
 
 s, search:
 Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them. Press enter to start sesarch.

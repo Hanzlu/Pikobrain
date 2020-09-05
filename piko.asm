@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.1.3", 0xd, 0xa
+    db "Pikobrain v1.1.4", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -93,7 +93,7 @@ bootdl2:
 
     ;check if install has been made
     mov bx, 0x1fd
-    mov al, byte [es:bx]
+    mov al, [es:bx]
     cmp al, 1h
     jne jmppb
     ;mark as installed
@@ -145,8 +145,7 @@ new:
     ;move cursor to top left
     mov ah, 2h
     mov bh, 0h
-    mov dh, 0h
-    mov dl, 0h
+    mov dx, 0h
     int 10h
 
 input:
@@ -220,24 +219,6 @@ readfile:
     int 13h
     ret
 
-dxtod: ;decimalhex to dec
-    ;ch is number to convert
-    ;set ax to ch
-    ;divide by 16
-    mov ah, 0h
-    mov al, ch
-    mov bl, 0x10
-    div bl
-    ;output current numbers
-    mov bx, ax
-    add bx, 0x3030
-    mov ah, 0xe
-    mov al, bl
-    int 10h
-    mov al, bh
-    int 10h
-    ret
-
 xtox: ;hex to hex
     ;ch contains number
     ;output ch as hex
@@ -283,20 +264,20 @@ filenum:
     int 10h
     call atohex
     mov cl, al
-    shl cl, 4h ;*16
+    shl cl, 4h ;*16, upper nibble
     mov ah, 0h
     int 16h
     mov ah, 0xe
     int 10h
     call atohex
-    add cl, al
+    add cl, al ;lower nibble
     ret
 
 setfolder:
     ;set folder
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x7fd
+    mov si, 0x7fd ;OS size depending
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al ;set cl
@@ -314,9 +295,9 @@ folder:
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x7fd
+    mov si, 0x7fd ;OS size depending
     call filenum
-    cmp cl, 0h ;double press enter to select current folder
+    cmp cl, 0h ;double press enter to select current folder-> value will be negative
     jl fend
     and cl, 3h ;clear bits
     mov [fs:si], cl
@@ -345,17 +326,17 @@ date:
     ;output
     mov ah, 4h
     int 1ah
-    call dxtod
+    call xtox
     mov ch, cl
-    call dxtod
+    call xtox
     mov ax, 0xe2f ;/
     int 10h
     mov ch, dh
-    call dxtod
+    call xtox
     mov ax, 0xe2f ;/
     int 10h
     mov ch, dl
-    call dxtod
+    call xtox
     jmp input
 time:
     ;get time
@@ -363,40 +344,38 @@ time:
     ;output
     mov ah, 2h
     int 1ah
-    call dxtod
+    call xtox
     mov ax, 0xe3a ;:
     int 10h
     mov ch, cl
-    call dxtod
+    call xtox
     mov ax, 0xe3a ;:
     int 10h
     mov ch, dh
-    call dxtod
+    call xtox
     jmp input	
 
 memory:
     call readfile
+menter: ;check last line
     call enter
 mbyte:
     ;get content of byte
-    mov ch, byte [es:bx]
+    mov ch, [es:bx]
     call xtox
     mov al, 0x20 ;space
     int 10h
-    cmp bx, 0x1ff ;reading 512 bytes
+    inc bx
+    cmp bx, 0x200 ;reading 512 bytes
     je input
     ;newline if row filled
     mov ax, bx
-    inc ax
-    mov dh, 0x19
+    mov dh, 0x19 ;25
     div dh
     cmp ah, 0h
-    jne mdiv ;mod 25
+    jne mbyte
     ;enter
-    call enter
-mdiv:
-    inc bx
-    jmp mbyte
+    jmp menter
 
 callread:
     call read
@@ -406,10 +385,10 @@ read:
     call readfile
     call enter
 nextread:
-    mov ax, [es:bx]
+    mov al, [es:bx]
     mov ah, 0xe
     int 10h
-    cmp al, 0h
+    cmp al, 0h ;null char
     je readend
     cmp bx, 0x200 ;because of edit
     je readend
@@ -543,7 +522,7 @@ save:
     int 13h
     mov ax, 0xe60 ;`
     int 10h
-    jmp input 
+    jmp input  
 
 edit:
     ;edit file
@@ -561,12 +540,12 @@ copy:
 
 kalc:
     call kgetint
+    push cx ;store number
     call kgetint
     ;2 integers stored on stack
     ;0000-FFFF
     ;return integers
-    pop cx
-    pop dx ;first integer
+    pop dx ;first integer, 2nd already in cx
     ;get operator
     mov ah, 0h
     int 16h
@@ -637,9 +616,6 @@ kgetint:
     mov ch, cl
     call filenum ;cl already set
     call enter
-    pop ax
-    push cx ;store number
-    push ax
     ret
 
 program:
@@ -662,26 +638,25 @@ program:
     mov al, dl
     mov dl, 0x80 ;drive
     int 13h ;read
-    mov dx, 0x200
+    mov dx, 0x200 ;multiplier
     mov ah, 0h
-    mul dx
-    mov si, ax ;number of bytes to read
-    mov dl, 0x10 ;multplier
+    mul dx ;number of bytes to read
+    mov si, ax
 pconv:
     ;convert ascii hex to hex
-    mov ax, word [es:bx]
+    mov al, [es:bx]
     ;make ascii into int
     call atohex
-    mul dl
+    shl al, 4h ;*16
     mov cl, al
     inc bx
-    mov ax, [es:bx]
+    mov al, [es:bx]
     call atohex
     add cl, al
     ;div bx 2
     shr bx, 1h
     ;store
-    mov byte [es:bx], cl
+    mov [es:bx], cl
     inc bx
     shl bx, 1h ;mul bx 2
     cmp bx, si ;check bytes read
@@ -707,7 +682,7 @@ hloop:
     push dx ;store remainder
     cmp ax, 0h ;division ended
     je hend
-    mov dx, 0h ;clear
+    mov dl, 0h ;clear
     jmp hloop
 hend:
     ;write result
@@ -715,8 +690,7 @@ hend:
     cmp al, 0x30 ;end of result
     je input
     ;output
-    mov ah, 0xe
-    add al, 30h ;printable
+    add ax, 0xe30 ;printable, ah=0
     int 10h
     jmp hend
 
@@ -725,13 +699,13 @@ info:
     mov ax, 0x1000
     mov fs, ax
     mov si, 0x7fd
-    mov ch, byte [fs:si]
+    mov ch, [fs:si]
     call xtox
     inc si
-    mov ch, byte [fs:si]
+    mov ch, [fs:si]
     call xtox
     inc si
-    mov ch, byte [fs:si]
+    mov ch, [fs:si]
     call xtox
     call enter
     ;output files 
@@ -749,20 +723,19 @@ info:
     int 13h ;read
     and cl, 0x3f ;clear upper bits
 iloop:
-    mov al, byte [es:bx]
-    cmp al, 0h
+    mov al, [es:bx]
+    cmp al, 0h ;is empty?
     je ilend
-    ;output cl
+    ;output filenum
     mov ch, cl
     call xtox
     mov ax, 0xe2e ;.
     int 10h
     mov ch, 0h ;char counter
-    mov bx, 0h
 iwloop:
     ;write 5 chars
-    mov al, byte [es:bx]
-    cmp al, 0x20
+    mov al, [es:bx]
+    cmp al, 0x20 ;space
     jge iw
     mov al, 0x2a ;*
 iw:
@@ -801,10 +774,9 @@ idi3:
 zero:
     mov ax, 0xe21 ;!
     int 10h
+    ;get y for yes
     mov ah, 0h
     int 16h
-    mov ah, 0xe
-    int 10h
     cmp al, 0x79 ;y
     jne input
     ;buffer
@@ -820,12 +792,14 @@ zloop:
     int 13h
     and cl, 0x3f ;clear upper bits
 zread:
-    mov al, byte [es:bx]
+    mov al, [es:bx]
     cmp al, 0h ;end of content
     je zwrite
+zzero:
     mov byte [es:bx], 0h
     inc bx
-    jmp zread
+    cmp bx, 0x200
+    jne zzero
 zwrite:
     cmp bx, 0h ;empty file
     je zend
@@ -838,8 +812,10 @@ zwrite:
 zend:
     inc cl
     cmp cl, 0x40 ;end of folder
-    je input
-    jmp zloop
+    jne zloop
+    mov ax, 0xe79 ;y
+    int 10h
+    jmp input
 
 search:
     mov ax, 0x1110
@@ -849,13 +825,13 @@ sword:
     ;get char
     mov ah, 0h
     int 16h
-    mov byte [gs:di], al ;store
+    mov [gs:di], al ;store
     ;if enter=end
     cmp al, 0xd
     je sstart
     ;output
     mov ah, 0xe
-    int 10h    
+    int 10h  
     inc di
     jmp sword
 sstart:
@@ -864,7 +840,7 @@ sstart:
     mov ax, 0x1200
     mov es, ax
     mov bx, 0h
-    mov cl, 1h
+    mov cl, 1h ;will change
 sloop:
     call setfolder
     mov di, 0h ;reset
@@ -875,8 +851,8 @@ sloop:
     int 13h
     and cl, 0x3f ;clear upper bits
 scomp:
-    mov al, byte [es:bx]
-    mov dl, byte [gs:di]
+    mov al, [es:bx]
+    mov dl, [gs:di]
     cmp dl, 0xd
     je sfind
     cmp al, dl
@@ -887,6 +863,7 @@ snext:
     inc di
     jmp scomp
 sfind:
+    ;print file number
     mov ch, cl
     call xtox
     mov ax, 0xe2e ;.
@@ -906,7 +883,7 @@ sfile:
 xdec:
     mov ax, 0x30 ;end of ans
     push ax
-    mov dx, 0x2710 ;mul
+    mov dx, 0x2710 ;mul 10000
     mov bx, 0h ;store
     mov cx, 0xa ;dx ax / cx
     mov si, 0h ;counter
@@ -921,7 +898,7 @@ xget:
     sub al, 30h
     push dx ;store
     mul dx
-    add bx, ax
+    add bx, ax ;store answer in bx
     ;div dx 10
     pop dx
     mov ax, dx
@@ -929,17 +906,15 @@ xget:
     div cx
     mov dx, ax
     inc si
-    cmp si, 5h
+    cmp si, 5h ;5 digit number
     jne xget
     mov cx, 0x10 ;div
+    mov ax, bx ;answer in bx
 xconv:
-    ;number in bx
-    mov ax, bx
     mov dx, 0h
     div cx
     push dx ;remainder
-    mov bx, ax
-    cmp bx, 0h
+    cmp ax, 0h
     jne xconv
     call enter
 xout:
@@ -1002,7 +977,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 1 db 0
+    times 38 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 
