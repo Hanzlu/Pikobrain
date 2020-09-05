@@ -537,6 +537,7 @@ save:
 edit:
     ;edit file
     call read
+    push cx ;for write save
     mov ax, 0xe08 ;backspace
     int 10h
     jmp typechar
@@ -988,7 +989,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 14 db 0
+    times 13 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 
