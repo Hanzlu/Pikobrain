@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.1.4", 0xd, 0xa
+    db "Pikobrain v1.1.5", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -298,7 +298,9 @@ folder:
     mov si, 0x7fd ;OS size depending
     call filenum
     cmp cl, 0h ;double press enter to select current folder-> value will be negative
-    jl fend
+    jl fsame
+    cmp cl, 0x3f ;double press letter to select home folder
+    jg fhome
     and cl, 3h ;clear bits
     mov [fs:si], cl
     inc si
@@ -311,7 +313,15 @@ folder:
     mov [fs:si], cl 
     call enter
     ret
-fend:
+fhome:
+    mov byte [fs:si], 0h
+    inc si
+    mov byte [fs:si], 0h
+    inc si
+    mov byte [fs:si], 0h
+    call enter
+    ret
+fsame:
     mov ax, 0xe2a ;*
     int 10h
     ret
@@ -437,7 +447,7 @@ backspace:
     mov ax, 0xe08
     int 10h
     dec bx
-    mov cl, byte [es:bx] ;store
+    mov ch, byte [es:bx] ;store
     mov byte [es:bx], 0h ;clear byte (and 0xa in case \n)
     cmp dl, 0h ;newline erase? (cursor pos)
     je wbnl
@@ -451,7 +461,7 @@ wbnl:
     dec dh
     mov dl, 0x4f ;79
     int 10h
-    cmp cl, 0xa ;was stored, check if newline
+    cmp ch, 0xa ;was stored, check if newline
     jne wbauto
     ;remove newline
     dec bx
@@ -514,7 +524,6 @@ save:
     ;set buffer and write
     mov bx, 0x0 ;reset
     mov dl, 0x80   
-    pop cx
     and cl, 0x3f ;remove high order bits
     ;set ch and dh
     call setfolder 
@@ -977,7 +986,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 38 db 0
+    times 16 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 

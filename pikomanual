@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.1.3
+PIKOBRAIN MANUAL v1.1.5
 Hanzlu (2019-2020)
 ---------------------
 
@@ -86,7 +86,8 @@ You are always in folder 000000 when you enter the operating system. Files 01-04
 are doing.
 
 f, folder:
-Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits.
+Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits. If you double press on the enter key, you will select the current
+folder. If you double press a letter key, you will select the home folder (000000). This makes it a bit faster.
 
 i, info:
 Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that do not have a ASCII 00 (hex) character as its first character will be displayed. 
@@ -130,6 +131,7 @@ c, copy:
 Enter a file number for the source file. Enter the destination folder's number (6 digit hexadecimal number). Enter source file's number. A ` character shall be
 displayed and the file has been copied. 
 When entering the folder number, you can instead double press the enter key. This should display a * character and tell the OS that you want to use the current folder.
+It is also possible to double press a letter key. This will select the home folder (000000).
 Then enter the destination file's number as normal.
 
 CODING
