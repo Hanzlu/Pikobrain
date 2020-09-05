@@ -524,6 +524,7 @@ save:
     ;set buffer and write
     mov bx, 0x0 ;reset
     mov dl, 0x80   
+    pop cx
     and cl, 0x3f ;remove high order bits
     ;set ch and dh
     call setfolder 
@@ -545,6 +546,7 @@ copy:
     call enter
     call folder ;dest folder
     call filenum ;dest file
+    push cx ;for save
     jmp save 
 
 kalc:
@@ -986,7 +988,7 @@ osfolder:
     call xtox
     jmp input
 
-    times 16 db 0
+    times 14 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x7ff -- hd head/track
 
