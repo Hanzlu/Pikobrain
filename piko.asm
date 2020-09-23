@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2", 0xd, 0xa
+    db "Pikobrain v1.2.1", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
