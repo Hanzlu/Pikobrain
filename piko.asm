@@ -1193,25 +1193,25 @@ aaT:
     ;MUL
     call aloop
     mov dx, 0xf6e0
-    mov ch, 0h ;no argument
+    mov ch, 2h ;no argument
     jmp aregstart2
 aD:
     ;DIV
     call aloop
     mov dx, 0xf6f0
-    mov ch, 0h ;no argument
+    mov ch, 2h ;no argument
     jmp aregstart2
 aaH:
     ;INC
     call aloop
     mov dx, 0xfec0
-    mov ch, 0h
+    mov ch, 2h
     jmp aregstart2
 aaL:
     ;DEC
     call aloop
     mov dx, 0xdec8
-    mov ch, 0h
+    mov ch, 2h
     jmp aregstart2
 aB:
     ;AND
@@ -1262,7 +1262,7 @@ aN:
     ;NOT
     call aloop
     mov dx, 0xf6d0
-    mov ch, 0h
+    mov ch, 2h
     jmp aregstart2
 aC:
     ;CMP
