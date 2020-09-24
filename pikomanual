@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.1
+PIKOBRAIN MANUAL v1.2.2
 Hanzlu (2019-2020)
 ---------------------
 
@@ -163,6 +163,12 @@ B, both (and)
 O, or
 X, xor
 C, compare
+
+Here is a list of 1 character mneumonics taking two arguments where the second argument must be a number:
+Q, (shl)
+W, (shr)
+Z, (rol)
+V, (ror)
 
 Here is a list of 1 character mneumonics in Pikobrain (one argument). Mneumonics marked with a * can only have 16 bit registers as arguments (and work in a special way), those marked with a / can
 only take a value as argument, those with a \ can only take registers:

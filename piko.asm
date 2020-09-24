@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.1", 0xd, 0xa
+    db "Pikobrain v1.2.2", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -632,8 +632,6 @@ edit:
     call new
     call read
     push cx ;for write save
-    mov ax, 0xe08 ;backspace
-    int 10h
     mov cx, bx ;for writeram
     jmp writeram
     
@@ -1103,6 +1101,14 @@ aconv:
     je aaH
     cmp al, 0x4c ;Dec less
     je aaL
+    cmp al, 0x51 ;Shl q
+    je aQ
+    cmp al, 0x57 ;Shr w
+    je aW
+    cmp al, 0x5a ;rol z
+    je aZ
+    cmp al, 0x56 ;ror v
+    je aV
     cmp al, 0x42 ;And both
     je aB
     cmp al, 0x4f ;Or
@@ -1213,6 +1219,30 @@ aaL:
     mov dx, 0xdec8
     mov ch, 0h
     jmp areg
+aQ:
+    ;SHL
+    call aloop
+    mov dx, 0xc0e0
+    mov ch, 1h
+    jmp aregstart2
+aW:
+    ;SHR
+    call aloop
+    mov dx, 0xc0e8
+    mov ch, 1h
+    jmp aregstart2
+aZ:
+    ;ROL
+    call aloop
+    mov dx, 0xc0c0
+    mov ch, 1h
+    jmp aregstart2
+aV:
+    ;ROR
+    call aloop
+    mov dx, 0xc0c8
+    mov ch, 1h
+    jmp aregstart2
 aB:
     ;AND
     call aloop
@@ -1780,7 +1810,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
 
-    times 75 db 0
+    times 13 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xdff -- hd head/track
 
