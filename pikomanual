@@ -164,7 +164,7 @@ O, or
 X, xor
 C, compare
 
-Here is a list of 1 character mneumonics in Pikobrain (one argument). Mneumonics marked with a * can only have 16 bit registers as arguments, those marked with a / can
+Here is a list of 1 character mneumonics in Pikobrain (one argument). Mneumonics marked with a * can only have 16 bit registers as arguments (and work in a special way), those marked with a / can
 only take a value as argument, those with a \ can only take registers:
 T, times\ (mul)
 D, divide\
@@ -172,8 +172,8 @@ H, higher\ (inc)
 L, lower\ (dec)
 N, not\
 I, int/
-U, push*
-P, pop*
+U, push* (if you want to push ax you write UA, so no X and everythin in one mneumonic. UA, UB, UC and UD, are in other words the ones you can use. Same for pop below)
+P, pop* (PA, PB, PC, PD)
 K, kreate/ (db)
 
 Control flow:
