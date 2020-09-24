@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.2
+PIKOBRAIN MANUAL v1.2.3
 Hanzlu (2019-2020)
 ---------------------
 
@@ -154,7 +154,8 @@ specify this by using the mneumonic MN (move number). Like this: MN AL 10
 If you for example want to move the number 1 to ax you must add pending zeros: MN AX 0001 (ax is 16 bit)
 In normal assembly language a comma is used between destination and source. This is not required in the Pikobrain version. It is also not required to use newlines
 between various mneumonics, but spaces are suggested (or even required).
-All the basic registers (AX, AH, AL, BX, BH..) are usable. You can yet not use segmentation registers or SI or  DI etc.
+All the basic registers (AX, AH, AL, BX, BH..) are usable. You can also use SI and DI, however they are called SX and TX and are 16 bit.
+Segmentation is possible only through ES:BX. Read the other commands part for this.
 Here is a list of 2 character mneumonics in Pikobrain (2 arguments, destination and source) (each require either an R or an N at the end such as MR or MN, not just M):
 M, move
 A, add
@@ -197,6 +198,8 @@ JB, jump below or equal (jle)
 The conditional jumps works like JM regarding the labels 
 
 Other commands are:
+ME, (mov es, ax)
+MA, (mov al, [es:bx])
 E, End (this will ask the user for a key press and return the contro of the computer back to the OS) (this command is necessary when ending a program)
 e, end (this marks the end of the source code, the command is necessary for the ending the program)
 The E and e should probably be consecutive in the code when you which for the program to end. YOu can have multiple E mneumonics but only one e mneumonic.

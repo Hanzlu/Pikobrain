@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.2", 0xd, 0xa
+    db "Pikobrain v1.2.3", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -86,7 +86,7 @@ bootdl2:
     mov es, ax
     mov bx, 0x0
     ;read
-    mov ax, 0x207 ;files to read 7x
+    mov ax, 0x208 ;files to read 8x
     mov cx, 1h
     mov dh, 0h ;dl set
     int 13h
@@ -109,7 +109,7 @@ boot81:
 install:
     ;write files to hard drive
     mov bx, 0h
-    mov ax, 0x307 ;7x files to write
+    mov ax, 0x308 ;8x files to write
     mov cx, 1h
     int 13h
     mov dl, 0h ;since dl was changed
@@ -287,7 +287,7 @@ setfolder:
     ;set folder
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xdfd ;OS size depending
+    mov si, 0xffd ;OS size depending
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al ;set cl
@@ -305,7 +305,7 @@ folder:
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xdfd ;OS size depending
+    mov si, 0xffd ;OS size depending
     call filenum
     cmp cl, 0h ;double press enter to select current folder-> value will be negative
     jl fsame
@@ -403,6 +403,7 @@ callread:
 read:
     ;read file as ASCII chars
     call readfile
+    call new
 nextread:
     mov al, [es:bx]
     mov ah, 0xe
@@ -425,9 +426,7 @@ write:
     push cx
     mov cx, 0h ;due to edit after writeram
     ;set cursor position
-    mov ah, 2h
-    mov dx, 0h ;stores cursor location
-    int 10h
+    call new
     ;clear ram
     mov bx, 0h
 writeram:
@@ -631,6 +630,8 @@ edit:
     ;edit file
     call new
     call read
+    mov ax, 0xe08 ;backspace
+    int 10h
     push cx ;for write save
     mov cx, bx ;for writeram
     jmp writeram
@@ -778,7 +779,7 @@ info:
     ;ouput folder number hex
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xdfd
+    mov si, 0xffd
     mov ch, [fs:si]
     call xtox
     inc si
@@ -1155,6 +1156,10 @@ aM:
     je aMN
     cmp dl, 0x52 ;Register
     je aMR
+    cmp dl, 0x45 ;mov es, ax
+    je aME
+    cmp dl, 0x41 ;mov al, [es:bx]
+    je aMA
     jmp aerror
 aMN:
     ;MOV NUMBER
@@ -1164,6 +1169,22 @@ aMR:
     ;MOV REGISTER
     mov dh, 0x88 ;opcode for MR (or 89)
     jmp acombstart
+aME:
+    ;MOV ES
+    sub bx, 2h ;due to aloop
+    mov byte [gs:di], 0x8e
+    inc di
+    mov byte [gs:di], 0xc0
+    jmp acend
+aMA:
+    ;MOV ESBX
+    sub bx, 2h
+    mov byte [gs:di], 0x26
+    inc di
+    mov byte [gs:di], 0x8a
+    inc di
+    mov byte [gs:di], 0x07
+    jmp acend
 aA:
     ;ADD
     call aloop
@@ -1345,6 +1366,10 @@ areg:
     je ar6
     cmp ax, 0x444c ;DL
     je ar2
+    cmp ax, 0x5358 ;SX
+    je ar6
+    cmp ax, 0x5458 ;TX
+    je ar7
     jmp aerror
     ;set dl = register
 ar7:
@@ -1402,7 +1427,15 @@ amreg:
     je amr6
     cmp ax, 0x444c ;DL
     je amr2
+    cmp ax, 0x5358 ;SX
+    je amr14
+    cmp ax, 0x5458 ;TX
+    je amr15
     jmp aerror ;if not found
+amr15:
+    inc ch
+amr14:
+    add ch, 3h
 amr11:
     inc ch
 amr10:
@@ -1468,6 +1501,10 @@ acomb2: ;for second round
     je ac6
     cmp ax, 0x444c ;DL
     je ac2
+    cmp ax, 0x5358 ;SX
+    je ar6
+    cmp ax, 0x5458 ;TX
+    je ar7
     jmp aerror ;if not found
     ;update dl = argument
 ac7:
@@ -1810,9 +1847,9 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
 
-    times 13 db 0
+    times 439 db 0
     db 0h ;upper 2 bits cl -- track
-    dw 0h ;0x1000:0xdff -- hd head/track
+    dw 0h ;0x1000:0xfff -- hd head/track
 
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp
