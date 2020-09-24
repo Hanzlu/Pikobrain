@@ -1193,26 +1193,26 @@ aaT:
     ;MUL
     call aloop
     mov dx, 0xf6e0
-    mov ch, 2h ;no argument
-    jmp aregstart2
+    mov ch, 0h ;no argument
+    jmp areg
 aD:
     ;DIV
     call aloop
     mov dx, 0xf6f0
-    mov ch, 2h ;no argument
-    jmp aregstart2
+    mov ch, 0h ;no argument
+    jmp areg
 aaH:
     ;INC
     call aloop
     mov dx, 0xfec0
-    mov ch, 2h
-    jmp aregstart2
+    mov ch, 0h
+    jmp areg
 aaL:
     ;DEC
     call aloop
     mov dx, 0xdec8
-    mov ch, 2h
-    jmp aregstart2
+    mov ch, 0h
+    jmp areg
 aB:
     ;AND
     call aloop
@@ -1262,8 +1262,8 @@ aN:
     ;NOT
     call aloop
     mov dx, 0xf6d0
-    mov ch, 2h
-    jmp aregstart2
+    mov ch, 0
+    jmp areg
 aC:
     ;CMP
     call aloop
@@ -1780,7 +1780,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
 
-    times 76 db 0
+    times 75 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xdff -- hd head/track
 
