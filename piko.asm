@@ -1702,6 +1702,7 @@ asaveloop:
     inc si
 ascomp:
     push si ;store so it can loop from same place
+ascloop:
     ;compare labels
     mov al, [fs:si]
     cmp al, [es:bx]
@@ -1710,7 +1711,7 @@ ascomp:
     je ascompeq
     inc si
     inc bx
-    jmp ascomp
+    jmp ascloop
 ascompend:
     ;jump past label
     cmp byte [es:bx], 0x2e
