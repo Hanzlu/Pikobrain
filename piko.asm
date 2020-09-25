@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.3", 0xd, 0xa
+    db "Pikobrain v1.2.4", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -403,10 +403,12 @@ callread:
 read:
     ;read file as ASCII chars
     call readfile
+    mov si, cx ;store
     call new
+    mov cx, si ;store
 nextread:
     mov al, [es:bx]
-    mov ah, 0xe
+    mov ah, 0xe ;due to write
     int 10h
     cmp al, 0h ;null char
     je readend
@@ -1126,6 +1128,10 @@ aconv:
     je aI
     cmp al, 0x43 ;Cmp
     je aC
+    cmp al, 0x47 ;in g
+    je aG
+    cmp al, 0x59 ;out y
+    je aY 
     cmp al, 0x4a ;Jmp
     je aJ
     cmp al, 0x46 ;Call function
@@ -1160,6 +1166,8 @@ aM:
     je aME
     cmp dl, 0x41 ;mov al, [es:bx]
     je aMA
+    cmp dl, 0x53 ;mov [es:bx], al
+    je aMS
     jmp aerror
 aMN:
     ;MOV NUMBER
@@ -1184,6 +1192,15 @@ aMA:
     mov byte [gs:di], 0x8a
     inc di
     mov byte [gs:di], 0x07
+    jmp acend
+aMS:
+    ;MOV ESBX
+    sub bx, 2h
+    mov byte [gs:di], 0x26
+    inc di
+    mov byte [gs:di], 0x88
+    inc di
+    mov byte [gs:di], 0x07    
     jmp acend
 aA:
     ;ADD
@@ -1502,9 +1519,9 @@ acomb2: ;for second round
     cmp ax, 0x444c ;DL
     je ac2
     cmp ax, 0x5358 ;SX
-    je ar6
+    je ac6
     cmp ax, 0x5458 ;TX
-    je ar7
+    je ac7
     jmp aerror ;if not found
     ;update dl = argument
 ac7:
@@ -1566,6 +1583,14 @@ aU0:
 aI:
     ;INT
     mov byte [gs:di], 0xcd ;int
+    jmp a1b
+aG:
+    ;IN
+    mov byte [gs:di], 0xe4
+    jmp a1b
+aY:
+    ;OUT
+    mov byte [gs:di], 0xe6
     jmp a1b
 aF:
     mov byte [gs:di], 0xe8 ;call
@@ -1847,7 +1872,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
 
-    times 439 db 0
+    times 389 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 

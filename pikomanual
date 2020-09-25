@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.3
+PIKOBRAIN MANUAL v1.2.4
 Hanzlu (2019-2020)
 ---------------------
 
@@ -179,6 +179,8 @@ H, higher\ (inc)
 L, lower\ (dec)
 N, not\
 I, int/
+G, / (in)
+Y, / (out) (in both in and out, you do not specify registor. The AL registor is automatically used)
 U, push* (if you want to push ax you write UA, so no X and everythin in one mneumonic. UA, UB, UC and UD, are in other words the ones you can use. Same for pop below)
 P, pop* (PA, PB, PC, PD)
 K, kreate/ (db)
@@ -200,6 +202,7 @@ The conditional jumps works like JM regarding the labels
 Other commands are:
 ME, (mov es, ax)
 MA, (mov al, [es:bx])
+MS, (mov [es:bx], al)
 E, End (this will ask the user for a key press and return the contro of the computer back to the OS) (this command is necessary when ending a program)
 e, end (this marks the end of the source code, the command is necessary for the ending the program)
 The E and e should probably be consecutive in the code when you which for the program to end. YOu can have multiple E mneumonics but only one e mneumonic.
