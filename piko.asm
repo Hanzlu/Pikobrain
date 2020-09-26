@@ -657,7 +657,6 @@ edit:
     int 10h
     push cx ;for write save
     mov cx, bx ;for writeram
-    inc bx
     jmp writeram
     
 copy:
@@ -1884,7 +1883,7 @@ program:
     jmp 0x1200:0x0
     
     
-    times 358 db 0
+    times 359 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 
