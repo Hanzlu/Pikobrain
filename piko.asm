@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.5", 0xd, 0xa
+    db "Pikobrain v1.2.6", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -408,10 +408,10 @@ read:
     mov cx, si ;store
 nextread:
     mov al, [es:bx]
-    mov ah, 0xe ;due to write
-    int 10h
     cmp al, 0h ;null char
     je readend
+    mov ah, 0xe ;due to write
+    int 10h
     inc bx
     cmp bx, 0x200 ;because of edit
     je readend
@@ -436,17 +436,17 @@ writeram:
     inc bx
     cmp bx, 0x200
     jl writeram ;less due to edit
-    mov bx, cx
+    mov di, cx
 typechar:
+    mov bh, 0h
     ;get cursor position
     mov ah, 3h
     int 10h
     push dx ;store
-    push bx
     call new ;clear screen
     mov bx, 0h
     call nextread
-    pop bx
+    mov bh, 0h
     ;reset cursor
     mov ah, 2h
     pop dx
@@ -476,22 +476,25 @@ typechar:
     cmp al, 0x7e ;~ char count
     je wchar 
     call wloopstart
+    cmp si, 0x200
+    jge save
     jmp typechar
 wloopstart:
-    mov si, bx
+    mov si, di
 wloop:
     mov ah, [es:si]
     mov [es:si], al
     mov al, ah
     inc si
     cmp si, 0x200
-    jge save
+    jge wloopend
     cmp al, 0h
     jne wloop
-    inc bx
+    inc di
+wloopend:
     ret
 wleft:
-    dec bx
+    dec di
     ;get cursor location
     mov ah, 3h
     int 10h
@@ -506,9 +509,9 @@ wleftnl:
     dec dh
     mov dl, 0x4f ;end of line
     int 10h
-    cmp byte [es:bx], 0xa ;newline
+    cmp byte [es:di], 0xa ;newline
     jne typechar
-    dec bx
+    dec di
     jmp wbnloop
 wright:
     ;get cursor location
@@ -516,24 +519,24 @@ wright:
     int 10h
     cmp dl, 0x4f ;end of line
     je wrightnl
-    cmp byte [es:bx], 0xd ;newline as well
+    cmp byte [es:di], 0xd ;newline as well
     je wrightnl
-    inc bx
+    inc di
     ;move cursor right
     dec ah ;2h
     inc dl
     int 10h
     jmp typechar
 wrightnl:
-    inc bx
+    inc di
     ;move cursor
     dec ah ;2h
     inc dh
     mov dl, 0h
     int 10h
-    cmp byte [es:bx], 0xa ;newline
+    cmp byte [es:di], 0xa ;newline
     jne typechar
-    inc bx
+    inc di
     jmp typechar
 backspace:
     ;get cursor position
@@ -542,8 +545,8 @@ backspace:
     ;output backspace
     mov ax, 0xe08
     int 10h
-    dec bx
-    mov ch, [es:bx] ;must store
+    dec di
+    mov ch, [es:di] ;must store
     call wbloopstart ;erase
     cmp dl, 0h ;newline erase? (cursor pos)
     je wbnl
@@ -560,7 +563,7 @@ wbnl:
     cmp ch, 0xa ;was stored, check if newline
     jne wbauto
     ;remove newline
-    dec bx
+    dec di
     call wbloopstart
 wbnloop:
     ;get cursor char
@@ -585,7 +588,7 @@ wbnlend:
     int 10h
     jmp typechar
 wbloopstart:
-    mov si, bx
+    mov si, di
 wbloop:
     inc si
     mov al, [es:si]
@@ -600,7 +603,7 @@ wbloopend:
 wenter:
     mov al, 0xd
     call wloopstart
-    ;bx already increased
+    ;di already increased
     mov ax, 0xe0a
     int 10h
     call wloopstart
@@ -617,9 +620,9 @@ wspecial:
     int 10h ;for cursor
     jmp typechar
 wchar:
-    dec bx ;else ~ will be saved
-    mov al, [es:bx]
-    mov byte [es:bx], 0h
+    dec di ;else ~ will be saved
+    mov al, [es:di]
+    mov byte [es:di], 0h
     call wloopstart
     mov cx, si ;number of chars written in file
     call xtox
@@ -653,8 +656,6 @@ edit:
     ;edit file
     call new
     call read
-    mov ax, 0xe08 ;backspace
-    int 10h
     push cx ;for write save
     mov cx, bx ;for writeram
     jmp writeram
@@ -1882,8 +1883,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
     
-    
-    times 359 db 0
+    times 355 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 
