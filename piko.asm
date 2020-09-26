@@ -412,9 +412,9 @@ nextread:
     int 10h
     cmp al, 0h ;null char
     je readend
+    inc bx
     cmp bx, 0x200 ;because of edit
     je readend
-    inc bx
     jmp nextread
 readend:
     ret
@@ -435,7 +435,7 @@ writeram:
     mov byte [es:bx], 0h
     inc bx
     cmp bx, 0x200
-    jne writeram
+    jl writeram ;less due to edit
     mov bx, cx
 typechar:
     ;get cursor position
@@ -485,7 +485,7 @@ wloop:
     mov al, ah
     inc si
     cmp si, 0x200
-    je save
+    jge save
     cmp al, 0h
     jne wloop
     inc bx
@@ -657,6 +657,7 @@ edit:
     int 10h
     push cx ;for write save
     mov cx, bx ;for writeram
+    inc bx
     jmp writeram
     
 copy:
@@ -1883,7 +1884,7 @@ program:
     jmp 0x1200:0x0
     
     
-    times 359 db 0
+    times 358 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 
