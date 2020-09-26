@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.4", 0xd, 0xa
+    db "Pikobrain v1.2.5", 0xd, 0xa
     db "Hanzlu 2019-2020", 0xd, 0xa
     db "Commands:", 0xd, 0xa
     db "t time", 0xd, 0xa
@@ -472,7 +472,9 @@ typechar:
     cmp al, 0x9 ;tab cancel
     je input
     cmp al, 0x5c ;\ special char
-    je wspecial  
+    je wspecial 
+    cmp al, 0x7e ;~ char count
+    je wchar 
     call wloopstart
     jmp typechar
 wloopstart:
@@ -598,7 +600,7 @@ wbloopend:
 wenter:
     mov al, 0xd
     call wloopstart
-    ;bx already incrased
+    ;bx already increased
     mov ax, 0xe0a
     int 10h
     call wloopstart
@@ -613,6 +615,25 @@ wspecial:
     call wloopstart
     mov ax, 0xe08 ;backspace
     int 10h ;for cursor
+    jmp typechar
+wchar:
+    dec bx ;else ~ will be saved
+    mov al, [es:bx]
+    mov byte [es:bx], 0h
+    call wloopstart
+    mov cx, si ;number of chars written in file
+    call xtox
+    mov ch, cl
+    call xtox
+    ;char press
+    mov ah, 0h
+    int 16h
+    mov ax, 0xe08 ;backspace
+    int 10h
+    int 10h
+    int 10h
+    int 10h
+    int 10h ;~ removed as well
     jmp typechar
 save:
     ;set buffer and write
@@ -1686,23 +1707,12 @@ aLabelend:
     inc bx
     jmp aconv 
 aE:
-    mov byte [gs:di], 0xb4
-    inc di
-    mov byte [gs:di], 0x00
-    inc di
-    mov byte [gs:di], 0xcd ;int 10h
-    inc di
-    mov byte [gs:di], 0x16
-    inc di
+    mov dword [gs:di], 0x16cd00b4
+    add di, 4h
     mov byte [gs:di], 0xea ;jmp seg:off
     inc di
-    mov byte [gs:di], 0h
-    inc di
-    mov byte [gs:di], 0h
-    inc di
-    mov byte [gs:di], 0x20
-    inc di
-    mov byte [gs:di], 0x10
+    mov dword [gs:di], 0x10200000
+    add di, 3h
     jmp acend
 aComment:
     inc bx
@@ -1871,8 +1881,9 @@ program:
     mov dl, 0x80 ;drive
     int 13h ;read
     jmp 0x1200:0x0
-
-    times 389 db 0
+    
+    
+    times 359 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 

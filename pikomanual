@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.4
+PIKOBRAIN MANUAL v1.2.5
 Hanzlu (2019-2020)
 ---------------------
 
@@ -117,6 +117,8 @@ w, write:
 Enter a file number. You can now write a file. You can use the enter button and the backspace button. There is one known limitation to the backspace button. You MAY NOT 
 type spaces before a newline character, else backspace will work a bit unexpectedly. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
+If you hold shift and the ` button (left of 1) you'll be displayed with a ~ character and a four digit hexadecimal number. This number shows you the number of characters
+the file currently holds out of the maximum 512 bytes (0200 hex). Press any key and you can continue writing.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
 press the tab key. This should display a small circle.
 If you write 512 characters you reach the file size limit in Pikobrain. The file will be automatically saved and a ` character will be displayed. If you save a file
