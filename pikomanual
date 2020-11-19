@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.6
+PIKOBRAIN MANUAL v1.2.7
 Hanzlu (2019-2020)
 ---------------------
 
@@ -34,7 +34,9 @@ Now remove the USB and boot from the hard drive. If the boot is successfull your
 COMMANDS
 --------
 
-Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or more digits) hexadecimal numbers (most of the time). Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). Here is a list of the commands you can use within Pikobrain and how they work:
+Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or more digits) hexadecimal numbers (most of the time). Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). If you want to quit writing a command (perhaps you wrote the wrong number)
+you can press the backspace button. This will bring you back to the "command prompt".
+ Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
 Displays the current time in hh:mm:ss format.
@@ -75,7 +77,7 @@ Enter a 5 digit decimal number (max 65535). You will be displayed with the numbe
 
 o, os:
 Displays information about the computer. All numbers are in hexadecimal.
-First number is RAM space in hexadecimal and unit kB.
+First number is RAM space in hexadecimal and unit kB. This value is probably inaccurate.
 Second number is the number of the boot device. If you have booted from hard drive you must make sure the number is 80. Else file operations will not work. Please
 contact Hanzlu if the number is different.
 Third number is the highest folder number you can enter. This number should always be known by the user. It shall also be known that the number is three 2-digit hexadecimal numbers and each of the numbers can not be higher than it is. For example my test machine displayes the number 03FEFE, which means I cannot enter folder
@@ -114,8 +116,11 @@ In order to access a file you enter a file number after a file manipulation comm
 Files in Pikobrain are automatically 512 bytes long. You can't change this.
 
 w, write:
-Enter a file number. You can now write a file. You can use the enter button and the backspace button. There is one known limitation to the backspace button. You MAY NOT 
-type spaces before a newline character, else backspace will work a bit unexpectedly. Notice also that the enter character is 2 characters (0xd and 0xa hex ASCII), and that backspace erases both at once.
+Enter a file number. You can now write a file. You can use the enter button and the backspace button. The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once. Spaces before newline characters are automatically removed, as else backspace will work unexpectedly.
+In order to copy text which you can paste later, you press the down arrow. Pikobrain remembers the character at which the cursor is. When you press the down arrow a
+second time Pikobrain will remember the location of the current character (above the cursor). **Now Pikobrain has a buffer of text which you can paste.
+To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
+between files.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
 If you hold shift and the ` button (left of 1) you'll be displayed with a ~ character and a four digit hexadecimal number. This number shows you the number of characters
 the file currently holds out of the maximum 512 bytes (0200 hex). Press any key and you can continue writing.
@@ -135,14 +140,11 @@ m, memory:
 Works like the r command but displays the file in hexadecimal form, like a .bin file.
 
 c, copy:
-Enter a file number for the source file. Enter the destination folder's number (6 digit hexadecimal number). Enter source file's number. A ` character shall be
+Enter a file number for the source file. Enter the number of files to read as a two digit hexadecimal number. Enter the destination folder's number (6 digit hexadecimal number). Enter source file's number. A ` character shall be
 displayed and the file has been copied. 
 When entering the folder number, you can instead double press the enter key. This should display a * character and tell the OS that you want to use the current folder.
 It is also possible to double press a letter key. This will select the home folder (000000).
 Then enter the destination file's number as normal.
-
-l, largecopy:
-This command allows the user to copy a whole folder to another. The command takes one argument the source folder's number. The current folder's content will be copied.
 
 CODING
 ------
@@ -183,8 +185,8 @@ N, not\
 I, int/
 G, / (in)
 Y, / (out) (in both in and out, you do not specify registor. The AL registor is automatically used)
-U, push* (if you want to push ax you write UA, so no X and everythin in one mneumonic. UA, UB, UC and UD, are in other words the ones you can use. Same for pop below)
-P, pop* (PA, PB, PC, PD)
+U, push* (if you want to push ax you write UA, so no X and everything in one mneumonic. UA, UB, UC UD, US and UT are in other words the ones you can use. Same for pop below)
+P, pop* (PA, PB, PC, PD, PS, PT)
 K, kreate/ (db)
 
 Control flow:
@@ -207,7 +209,7 @@ MA, (mov al, [es:bx])
 MS, (mov [es:bx], al)
 E, End (this will ask the user for a key press and return the contro of the computer back to the OS) (this command is necessary when ending a program)
 e, end (this marks the end of the source code, the command is necessary for the ending the program)
-The E and e should probably be consecutive in the code when you which for the program to end. YOu can have multiple E mneumonics but only one e mneumonic.
+The E and e should probably be consecutive in the code when you which for the program to end. You can have multiple E mneumonics but only one e mneumonic.
 ;, comment. Allows you to type anything until the next newline character without affecting the assembler process.
 
 In order to assemble assembly code you press 'a' for the assembly command. The enter the file number of the first file in the program. Then how many files to read 

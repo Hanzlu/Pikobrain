@@ -6,9 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.6", 0xd, 0xa
-    db "Hanzlu 2019-2020", 0xd, 0xa
-    db "Commands:", 0xd, 0xa
+    db "Pikobrain v1.2.7", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -20,13 +18,12 @@ jmp bootloader
     db "f [fo] folder", 0xd, 0xa
     db "s [str] search", 0xd, 0xa
     db "i info", 0xd, 0xa
-    db "l [fo] large", 0xd, 0xa
     db "z ['y'] zero", 0xd, 0xa
     db "w [fi] write", 0xd, 0xa
     db "e [fi] edit", 0xd, 0xa
     db "r [fi] read", 0xd, 0xa
     db "m [fi] memory", 0xd, 0xa
-    db "c [fi] [fo] [fi] copy", 0xd, 0xa
+    db "c [fi] [2h] [fo] [fi] copy", 0xd, 0xa
     db "a [fi] [2h] [fi] assembly", 0xd, 0xa
     db "p [fi] [2h] program"
 
@@ -34,7 +31,8 @@ jmp bootloader
     bootdrive db 0h
     heads db 0h
     tracks dw 0h
-    sectors db 0h    
+    sectors db 0h 
+    color db 2h  
 
 bootloader:
 	mov ax, 0x9c0
@@ -137,13 +135,17 @@ success:
 ;PIKOBRAIN
 ;**********    
 
+
 callnew:
     call new
     jmp input
 new:
+    ;set graphics mode
+    mov ax, 3h
+    int 10h
     ;set color
     mov ax, 0x600
-    mov bh, 0x3e
+    mov bh, [color]
     mov cx, 0h
     mov dx, 0x184f
     int 10h
@@ -185,8 +187,6 @@ input:
     je edit
     cmp al, 0x63 ;c
     je copy  
-    cmp al, 0x6c ;l
-    je largecopy
     cmp al, 0x66 ;f
     je callfolder
     cmp al, 0x69 ;i
@@ -270,6 +270,8 @@ filenum:
     ;convert and into cl
     mov ah, 0h
     int 16h
+    cmp al, 0x8 ;backspace
+    je input
     mov ah, 0xe
     int 10h
     call atohex
@@ -277,6 +279,8 @@ filenum:
     shl cl, 4h ;*16, upper nibble
     mov ah, 0h
     int 16h
+    cmp al, 0x8 ;backspace
+    je input
     mov ah, 0xe
     int 10h
     call atohex
@@ -299,6 +303,7 @@ setfolder:
 
 callfolder:
     call folder
+    call enter
     jmp input
 folder:
     ;change head and track
@@ -321,7 +326,6 @@ folder:
     ;ch track lower
     call filenum
     mov [fs:si], cl 
-    call enter
     ret
 fhome:
     mov byte [fs:si], 0h
@@ -329,7 +333,6 @@ fhome:
     mov byte [fs:si], 0h
     inc si
     mov byte [fs:si], 0h
-    call enter
     ret
 fsame:
     mov ax, 0xe2a ;*
@@ -438,7 +441,7 @@ writeram:
     jl writeram ;less due to edit
     mov di, cx
 typechar:
-    mov bh, 0h
+    mov bx, 0h
     ;get cursor position
     mov ah, 3h
     int 10h
@@ -461,6 +464,10 @@ typechar:
     je wleft
     cmp ah, 0x4d ;right arrow
     je wright
+    cmp ah, 0x50 ;down arrow
+    je wcopy
+    cmp ah, 0x48 ;up arrow
+    je wpaste
     ;write character typed
     mov ah, 0xe
     int 10h
@@ -601,6 +608,14 @@ wbloop:
 wbloopend:
     ret
 wenter:
+    ;remove spaces before newline
+    dec di
+    cmp byte [es:di], 0x20 ;space
+    jne wenterspace
+    call wbloopstart ;remove space
+    jmp wenter ;check if multiple spaces
+wenterspace:
+    inc di
     mov al, 0xd
     call wloopstart
     ;di already increased
@@ -638,6 +653,54 @@ wchar:
     int 10h
     int 10h ;~ removed as well
     jmp typechar
+wcopy:
+    mov ax, 0x1150
+    mov gs, ax
+    mov si, 0h
+    cmp byte [gs:si], 0h
+    jne wccopy
+    mov byte [gs:si], 1h ;start copying
+    inc si
+    mov [gs:si], di ;location of current char
+    jmp typechar
+wccopy:
+    mov byte [gs:si], 0h ;end of copying
+    inc si
+    mov bx, [gs:si] ;first limit
+    mov cx, di
+    cmp bx, cx
+    jle wcsave
+    mov ax, cx ;cx should be higher than bx
+    mov cx, bx
+    mov bx, ax
+wcsave:
+    mov al, [es:bx]
+    mov byte [gs:si], al
+    cmp bx, cx
+    je wcsavend ;all characters copied
+    inc bx
+    inc si
+    jmp wcsave
+wcsavend:
+    inc si
+    mov byte [gs:si], 0h ;end of copy
+    jmp typechar
+wpaste:
+    mov si, 1h
+wcsi:
+    push si
+    mov al, [gs:si]
+    cmp al, 0h ;end of copy
+    je wpastend
+    call wloopstart ;write character
+    mov ax, 0xe30 ;move cursor
+    int 10h
+    pop si
+    inc si
+    jmp wcsi
+wpastend:
+    pop si
+    jmp typechar
 save:
     ;set buffer and write
     mov bx, 0x0 ;reset
@@ -648,45 +711,47 @@ save:
     call setfolder 
     mov ax, 0x301
     int 13h
+saved:
     mov ax, 0xe60 ;`
     int 10h
     jmp input  
 
 edit:
     ;edit file
-    call new
     call read
     push cx ;for write save
     mov cx, bx ;for writeram
     jmp writeram
     
 copy:
-    call readfile ;source
-    call enter
-    call folder ;dest folder
-    call filenum ;dest file
-    push cx ;for save
-    jmp save 
-
-largecopy:
     ;buffer
     mov ax, 0x1200
     mov es, ax
-    mov bx, 0x0
+    mov bx, 0h
     ;read
-    mov cl, 1h
+    call filenum ;filenum
+    and cl, 0x3f ;remove upper bits
+    push cx
+    call filenum ;number of files
+    mov al, cl
+    mov ah, 2h 
+    pop cx
+    push ax
     call setfolder
-    mov dl, 0x80
-    mov ax, 0x23f ;read all files
+    pop ax
+    push ax
     int 13h
-    ;dest folder
-    call folder
+    mov ax, 0xe77 ;w
+    int 10h
     ;write
-    mov cl, 1h
+    call folder ;set dest folder
+    call filenum
+    and cl, 0x3f ;remove upper bits
     call setfolder
-    mov ax, 0x33f ;write all files
+    pop ax ;same number
+    inc ah
     int 13h
-    jmp input
+    jmp saved   
 
 kalc:
     call kgetint
@@ -1099,7 +1164,6 @@ assembly:
     mov dl, cl ;store for al
     ;set cx
     pop cx
-    push dx ;store for save
     ;folder
     call setfolder
     mov ah, 2h
@@ -1170,6 +1234,8 @@ aconv:
     je asave
     cmp al, 0x3b ;; comment
     je aComment
+    cmp al, 0x22 ;" print
+    je aPrint
     inc bx
     jmp aconv
 acend:
@@ -1592,7 +1658,15 @@ aUP:
     cmp al, 0x43 ;CX
     je aU1
     cmp al, 0x44 ;DX
-    je aU2    
+    je aU2
+    cmp al, 0x53 ;SX (SI)
+    je aU6
+    cmp al, 0x54 ;TX (DI)
+    jmp aerror
+aU7:
+    inc dl
+aU6:
+    add dl, 3h   
 aU3:
     inc dl
 aU2:
@@ -1721,6 +1795,21 @@ aComment:
     jne aComment
     inc bx ;this is a real paradox, save space or time? Einstein: "Spacetime"
     jmp aconv
+aPrint:
+    mov word [gs:di], 0x0eb4 ;mov ah, 0xe
+    inc di
+aPloop: 
+    inc bx
+    mov ah, [es:bx]
+    cmp ah, 0x22 ;" end of string
+    je acend
+    mov al, 0xb0 ;mov al
+    inc di
+    mov [gs:di], ax ;mov al, <>
+    add di, 2h
+    mov word [gs:di], 0x10cd ;int 10h
+    inc di
+    jmp aPloop
 askip:
     ;skip whitespace
     inc bx
@@ -1853,9 +1942,13 @@ awrite:
     call filenum
     and cl, 0x3f
     call setfolder
-    mov dl, 0x80
-    pop ax ;dx stored number of files
+    mov ax, di
+    shr ax, 8h
+    mov dl, 0x2
+    div dl
     mov ah, 3h
+    inc al
+    mov dl, 80h
     int 13h
     call enter
     jmp input
@@ -1883,7 +1976,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
     
-    times 355 db 0
+    times 159 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 
