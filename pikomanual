@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.7
+PIKOBRAIN MANUAL v1.2.8
 Hanzlu (2019-2020)
 ---------------------
 
@@ -128,6 +128,7 @@ second time Pikobrain will save all the text between the two key presses. **Now 
 To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
 between files.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
+Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input'. This will be fixed soon.
 If you hold shift and the ` button (left of 1) you'll be displayed with a ~ character and a four digit hexadecimal number. This number shows you the number of characters
 the file currently holds out of the maximum 512 bytes (0200 hex). Press any key and you can continue writing.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
@@ -151,6 +152,10 @@ Enter the destination folder's number (6 digit hexadecimal number or a shortcut)
 
 CODING
 ------
+
+**The OS often uses a buffer starting at 0x1200:0x0 (20 bit segmentation), including when loading machine code into RAM with the 'p' command. Thus, you should not use
+that buffer in your own programs as you will alter the code your program is running from.
+**Programs may not start with a jump. This is due to how jumps are assembled.
 
 Pikobrain has a limited assembler. The assembly language is a custom version of assembly language. The code is written in consecutive files within single folders.
 The code is written in upper case with one exception.
@@ -223,8 +228,10 @@ where the binary code will be placed. If your program is large, the machine code
 
 Errors
 If you get an error you will se a four digit number telling you at what character in the assembly code the error is, followed with an e. If you also see an 'a' 
-character this means the program as been assembled up until that point where the error is found. Else the assembler has run into a more critical error. If the
-assembler gets stuck in a loop constantly printing the same error message, it is probably a problem with labels. Make sure to spell them correctly.
+character this means the program as been assembled up until that point where the error is found. This allows you to see where in the machine code the error is.
+If you do not get a four digit number before the e character it means it is a label error. Make sure to spell labels right.
+If you get the four digit number and two e characters it means you have both a general error and a label error.
+
 
 p, program:
 The 'p' command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will jump to the user's program. Therefore it is necessary to include the Ee mneumonics in the code, so that control is given back to the operating system.

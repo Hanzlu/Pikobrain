@@ -1,12 +1,12 @@
 	BITS 16
 
-;**********
+;***********
 ;BOOTLOADER
-;**********
+;***********
 
 jmp bootloader
 
-    db "Pikobrain v1.2.7", 0xd, 0xa
+    db "Pikobrain v1.2.8", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -31,8 +31,7 @@ jmp bootloader
     bootdrive db 0h
     heads db 0h
     tracks dw 0h
-    sectors db 0h 
-    color db 2h  
+    sectors db 0h  
 
 bootloader:
 	mov ax, 0x9c0
@@ -145,7 +144,7 @@ new:
     int 10h
     ;set color
     mov ax, 0x600
-    mov bh, [color]
+    mov bh, 2h ;black-green
     mov cx, 0h
     mov dx, 0x184f
     int 10h
@@ -229,7 +228,7 @@ readfile:
     int 13h
     ret
 
-xtox: ;hex to hex
+xtox: ;hex to ascii-hex
     ;ch contains number
     ;output ch as hex
     mov al, ch
@@ -247,7 +246,7 @@ xtox: ;hex to hex
     ret
 
 atohex:
-    ;ascii to hex
+    ;ascii-hex to hex
     sub al, 30h
     cmp al, 9h
     jle athback
@@ -256,7 +255,7 @@ athback:
     ret
 
 xtoasc:
-    ;hex to ascii
+    ;hex to ascii-hex
     add al, 30h
     cmp al, 39h
     jle xtaback
@@ -266,7 +265,7 @@ xtaback:
 
 filenum:
     ;get 2 digit hex num input
-    ;do not store stuff in ax
+    ;changes ax and cl
     ;convert and into cl
     mov ah, 0h
     int 16h
@@ -381,8 +380,10 @@ time:
 memory:
     call readfile
 menter: ;check last line
+    mov dh, 0h
     call enter
 mbyte:
+    ;read file as hex
     ;get content of byte
     mov ch, [es:bx]
     call xtox
@@ -392,10 +393,8 @@ mbyte:
     cmp bx, 0x200 ;reading 512 bytes
     je input
     ;newline if row filled
-    mov ax, bx
-    mov dh, 0x19 ;25
-    div dh
-    cmp ah, 0h
+    inc dh
+    cmp dh, 0x19 ;25
     jne mbyte
     ;enter
     jmp menter
@@ -406,9 +405,9 @@ callread:
 read:
     ;read file as ASCII chars
     call readfile
-    mov si, cx ;store
+    push cx
     call new
-    mov cx, si ;store
+    pop cx ;store
 nextread:
     mov al, [es:bx]
     cmp al, 0h ;null char
@@ -428,7 +427,7 @@ write:
     mov es, ax
     ;get file number
     call filenum
-    push cx
+    push cx ;store for save
     mov cx, 0h ;due to edit after writeram
     ;set cursor position
     call new
@@ -635,6 +634,7 @@ wspecial:
     int 10h ;for cursor
     jmp typechar
 wchar:
+    push dx
     dec di ;else ~ will be saved
     mov al, [es:di]
     mov byte [es:di], 0h
@@ -646,12 +646,9 @@ wchar:
     ;char press
     mov ah, 0h
     int 16h
-    mov ax, 0xe08 ;backspace
+    pop dx
+    mov ah, 2h ;reset cursor
     int 10h
-    int 10h
-    int 10h
-    int 10h
-    int 10h ;~ removed as well
     jmp typechar
 wcopy:
     mov ax, 0x1150
@@ -738,7 +735,7 @@ copy:
     pop cx
     push ax
     call setfolder
-    pop ax
+    pop ax ;set ax
     push ax
     int 13h
     mov ax, 0xe77 ;w
@@ -864,7 +861,55 @@ hend:
     int 10h
     jmp hend
 
-info:  
+xdec:
+    ;convert dec to hex
+    mov ax, 0x30 ;end of ans
+    push ax
+    mov dx, 0x2710 ;mul 10000
+    mov bx, 0h ;store
+    mov cx, 0xa ;dx ax / cx
+    mov si, 0h ;counter
+xget:
+    ;get number
+    mov ah, 0h
+    int 16h
+    ;print
+    mov ah, 0xe
+    int 10h
+    mov ah, 0h
+    sub al, 30h
+    push dx ;store
+    mul dx
+    add bx, ax ;store answer in bx
+    ;div dx 10
+    pop dx
+    mov ax, dx
+    mov dx, 0h
+    div cx
+    mov dx, ax
+    inc si
+    cmp si, 5h ;5 digit number
+    jne xget
+    mov cx, 0x10 ;div
+    mov ax, bx ;answer in bx
+xconv:
+    mov dx, 0h
+    div cx
+    push dx ;remainder
+    cmp ax, 0h
+    jne xconv
+    call enter
+xout:
+    pop ax
+    cmp al, 0x30 ;end
+    je input
+    call xtoasc
+    mov ah, 0xe
+    int 10h
+    jmp xout
+
+info: 
+    ;pikobrain dir command 
     ;ouput folder number hex
     mov ax, 0x1000
     mov fs, ax
@@ -942,6 +987,7 @@ idi3:
     jmp iloop
 
 zero:
+    ;deletes folder
     mov ax, 0xe21 ;!
     int 10h
     ;get y for yes
@@ -1040,61 +1086,16 @@ sfind:
     int 10h
     jmp sfile
 snot:
-    inc bx
+    inc bx ;next char
     cmp bx, 0x200
-    je sfile
+    jge sfile
+    mov di, 0h ;reset
     jmp scomp
 sfile:
     inc cl
     cmp cl, 0x40
     je input
     jmp sloop
-
-xdec:
-    mov ax, 0x30 ;end of ans
-    push ax
-    mov dx, 0x2710 ;mul 10000
-    mov bx, 0h ;store
-    mov cx, 0xa ;dx ax / cx
-    mov si, 0h ;counter
-xget:
-    ;get number
-    mov ah, 0h
-    int 16h
-    ;print
-    mov ah, 0xe
-    int 10h
-    mov ah, 0h
-    sub al, 30h
-    push dx ;store
-    mul dx
-    add bx, ax ;store answer in bx
-    ;div dx 10
-    pop dx
-    mov ax, dx
-    mov dx, 0h
-    div cx
-    mov dx, ax
-    inc si
-    cmp si, 5h ;5 digit number
-    jne xget
-    mov cx, 0x10 ;div
-    mov ax, bx ;answer in bx
-xconv:
-    mov dx, 0h
-    div cx
-    push dx ;remainder
-    cmp ax, 0h
-    jne xconv
-    call enter
-xout:
-    pop ax
-    cmp al, 0x30 ;end
-    je input
-    call xtoasc
-    mov ah, 0xe
-    int 10h
-    jmp xout
 
 os:
     ;display ram
@@ -1268,27 +1269,24 @@ aMR:
 aME:
     ;MOV ES
     sub bx, 2h ;due to aloop
-    mov byte [gs:di], 0x8e
+    mov word [gs:di], 0xc08e
     inc di
-    mov byte [gs:di], 0xc0
     jmp acend
 aMA:
     ;MOV ESBX
     sub bx, 2h
     mov byte [gs:di], 0x26
     inc di
-    mov byte [gs:di], 0x8a
+    mov word [gs:di], 0x078a
     inc di
-    mov byte [gs:di], 0x07
     jmp acend
 aMS:
     ;MOV ESBX
     sub bx, 2h
     mov byte [gs:di], 0x26
     inc di
-    mov byte [gs:di], 0x88
-    inc di
-    mov byte [gs:di], 0x07    
+    mov word [gs:di], 0x0788
+    inc di    
     jmp acend
 aA:
     ;ADD
@@ -1875,11 +1873,11 @@ aerror:
 asave:
     mov ax, 0x3200
     mov fs, ax
-    mov byte [fs:si], 0h ;end of list
+    mov word [fs:si], 0h ;end of list
     mov ax, 0x4200
     mov fs, ax
     pop si
-    mov byte [fs:si], 0h
+    mov byte [fs:si], 0h ;end of list
     mov es, ax ;label list
     mov bx, 0h
     mov ax, 0x3200 ;jmp list
@@ -1909,7 +1907,7 @@ ascompend:
     cmp byte [es:bx], 0x2e
     je ascend
     cmp byte [es:bx], 0x0 ;label not found
-    je aerror
+    je alerror
     inc bx
     jmp ascompend
 ascend:
@@ -1932,6 +1930,11 @@ ascompeq:
     inc si
     mov bx, 0h
     jmp asaveloop
+alerror:
+    ;label error
+    pop si ;take down
+    mov ax, 0xe65 ;e
+    int 10h
 awrite:
     mov ax, 0xe61 ;Assembled
     int 10h
@@ -1942,7 +1945,7 @@ awrite:
     call filenum
     and cl, 0x3f
     call setfolder
-    mov ax, di
+    mov ax, di ;calculate number of files to save: di//0x200
     shr ax, 8h
     mov dl, 0x2
     div dl
@@ -1976,7 +1979,7 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
     
-    times 159 db 0
+    times 171 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0xfff -- hd head/track
 
