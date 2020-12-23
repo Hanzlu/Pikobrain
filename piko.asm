@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.8", 0xd, 0xa
+    db "Pikobrain v1.2.9", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -15,6 +15,7 @@ jmp bootloader
     db "k [4h] [4h] [1d] kalc", 0xd, 0xa
     db "h [4h] hex", 0xd, 0xa
     db "x [5d] xdec", 0xd, 0xa
+    db ". [4h] float", 0xd, 0xa
     db "f [fo] folder", 0xd, 0xa
     db "s [str] search", 0xd, 0xa
     db "i info", 0xd, 0xa
@@ -83,7 +84,7 @@ bootdl2:
     mov es, ax
     mov bx, 0x0
     ;read
-    mov ax, 0x208 ;files to read 8x
+    mov ax, 0x209 ;files to read 8x
     mov cx, 1h
     mov dh, 0h ;dl set
     int 13h
@@ -106,7 +107,7 @@ boot81:
 install:
     ;write files to hard drive
     mov bx, 0h
-    mov ax, 0x308 ;8x files to write
+    mov ax, 0x309 ;8x files to write
     mov cx, 1h
     int 13h
     mov dl, 0h ;since dl was changed
@@ -144,14 +145,9 @@ new:
     int 10h
     ;set color
     mov ax, 0x600
-    mov bh, 2h ;black-green
+    mov bh, 0xe ;black-yellow
     mov cx, 0h
     mov dx, 0x184f
-    int 10h
-    ;move cursor to top left
-    mov ah, 2h
-    mov bh, 0h
-    mov dx, 0h
     int 10h
     ret
 
@@ -174,6 +170,8 @@ input:
     je hex
     cmp al, 0x78 ;x
     je xdec
+    cmp al, 0x2e ;.
+    je real
     cmp al, 0x6f ;o
     je os
     cmp al, 0x6d ;m
@@ -270,7 +268,7 @@ filenum:
     mov ah, 0h
     int 16h
     cmp al, 0x8 ;backspace
-    je input
+    je filenquit
     mov ah, 0xe
     int 10h
     call atohex
@@ -279,18 +277,21 @@ filenum:
     mov ah, 0h
     int 16h
     cmp al, 0x8 ;backspace
-    je input
+    je filenquit
     mov ah, 0xe
     int 10h
     call atohex
     add cl, al ;lower nibble
     ret
+filenquit:
+    pop ax ;pop ip because function
+    jmp input
 
 setfolder:
     ;set folder
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xffd ;OS size depending
+    mov si, 0x11fd ;OS size depending
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al ;set cl
@@ -309,10 +310,12 @@ folder:
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xffd ;OS size depending
+    mov si, 0x11fd ;OS size depending
     call filenum
     cmp cl, 0h ;double press enter to select current folder-> value will be negative
     jl fsame
+    cmp cl, 0x44 ;double semi-colon
+    je flast
     cmp cl, 0x3f ;double press letter to select home folder
     jg fhome
     and cl, 3h ;clear bits
@@ -332,6 +335,11 @@ fhome:
     mov byte [fs:si], 0h
     inc si
     mov byte [fs:si], 0h
+    ret
+flast:
+    call filenum
+    add si, 2h
+    mov [fs:si], cl
     ret
 fsame:
     mov ax, 0xe2a ;*
@@ -408,6 +416,7 @@ read:
     push cx
     call new
     pop cx ;store
+    mov bx, 0h
 nextread:
     mov al, [es:bx]
     cmp al, 0h ;null char
@@ -711,7 +720,7 @@ save:
 saved:
     mov ax, 0xe60 ;`
     int 10h
-    jmp input  
+    jmp input
 
 edit:
     ;edit file
@@ -778,7 +787,9 @@ kalc:
     cmp al, 38h ;8=xor
     je kxor
     cmp al, 39h ;9=not
-    je knot    
+    je knot
+    cmp al, 30h ;0=float division
+    je kfloat   
     jmp input ;if invalid
     ;answer stored in dx
 kadd:
@@ -815,6 +826,35 @@ kxor:
     jmp kanswer
 knot:
     not dx
+    jmp kanswer
+kfloat:
+    mov bl, 0h ;counter
+    mov ax, dx
+    mov dx, 0h
+    div cx
+    ;dx is remainder
+    ;divide dx by cx to get float
+kfloop:
+    shl dx, 4h ;*16
+    push dx ;save
+    mov ax, dx
+    mov dx, 0h
+    div cx
+    push ax
+    ;print
+    mov ah, 0xe
+    call xtoasc ;convert into ascii
+    int 10h
+    pop ax
+    mul cx
+    mov dx, ax 
+    pop ax
+    sub ax, dx
+    mov dx, ax
+    inc bl
+    cmp bl, 4h
+    jne kfloop
+    jmp input ;answer outputted
 kanswer:
     ;answer in dx
     mov ch, dh
@@ -908,12 +948,38 @@ xout:
     int 10h
     jmp xout
 
+real:
+    ;convert hex float to dec
+    call filenum
+    mov bh, cl
+    call filenum ;float in ax
+    mov bl, cl
+    push bx
+    mov cl, 0h ;counter
+    mov bx, 0xa ;10 is multiplier
+    call enter
+    mov al, 0x2e ;.
+    int 10h
+    pop ax
+realoop:
+    mul bx
+    push ax
+    mov al, dl
+    add al, 30h
+    mov ah, 0xe
+    int 10h ;print value
+    pop ax
+    inc cl
+    cmp cl, 0x6 ;decimal points precision
+    jne realoop
+    jmp input
+
 info: 
     ;pikobrain dir command 
     ;ouput folder number hex
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0xffd
+    mov si, 0x11fd
     mov ch, [fs:si]
     call xtox
     inc si
@@ -957,7 +1023,7 @@ iw:
     mov ah, 0xe
     int 10h
     inc ch
-    cmp ch, 5h
+    cmp ch, 0xa ;10 characters
     je iwend
     inc bx
     jmp iwloop
@@ -1034,7 +1100,7 @@ zend:
     jmp input
 
 search:
-    mov ax, 0x1110
+    mov ax, 0x1120
     mov gs, ax
     mov di, 0x0 ;gs:di search word
 sword:
@@ -1098,34 +1164,6 @@ sfile:
     jmp sloop
 
 os:
-    ;display ram
-    ;check if extended ram
-    mov ah, 88h
-    int 15h
-    cmp ax, 0h ;no extended
-    je osrams
-    add ax, 0x400 ;1k
-    mov dx, ax
-    mov ch, dh
-    call xtox
-    mov ch, dl
-    call xtox
-    jmp oskb
-osrams:
-    ;less than 1MB ram
-    int 12h
-    mov dx, ax
-    mov ch, dh
-    call xtox
-    mov ch, dl
-    call xtox    
-oskb:
-    mov ax, 0xe6b ;k
-    int 10h
-    mov al, 0x42 ;B
-    int 10h
-    call enter
-osboot:
     ;display bootdrive
     mov ch, [bootdrive]
     call xtox
@@ -1191,14 +1229,10 @@ aconv:
     je aaH
     cmp al, 0x4c ;Dec less
     je aaL
-    cmp al, 0x51 ;Shl q
-    je aQ
-    cmp al, 0x57 ;Shr w
-    je aW
-    cmp al, 0x5a ;rol z
+    cmp al, 0x5a ;shift z
     je aZ
-    cmp al, 0x56 ;ror v
-    je aV
+    cmp al, 0x51 ;rotate q
+    je aQ
     cmp al, 0x42 ;And both
     je aB
     cmp al, 0x4f ;Or
@@ -1215,10 +1249,8 @@ aconv:
     je aI
     cmp al, 0x43 ;Cmp
     je aC
-    cmp al, 0x47 ;in g
+    cmp al, 0x47 ;in/out g
     je aG
-    cmp al, 0x59 ;out y
-    je aY 
     cmp al, 0x4a ;Jmp
     je aJ
     cmp al, 0x46 ;Call function
@@ -1251,12 +1283,8 @@ aM:
     je aMN
     cmp dl, 0x52 ;Register
     je aMR
-    cmp dl, 0x45 ;mov es, ax
-    je aME
-    cmp dl, 0x41 ;mov al, [es:bx]
-    je aMA
-    cmp dl, 0x53 ;mov [es:bx], al
-    je aMS
+    cmp dl, 0x4e ;mov [--:--]
+    jl aMS
     jmp aerror
 aMN:
     ;MOV NUMBER
@@ -1266,27 +1294,92 @@ aMR:
     ;MOV REGISTER
     mov dh, 0x88 ;opcode for MR (or 89)
     jmp acombstart
-aME:
-    ;MOV ES
-    sub bx, 2h ;due to aloop
-    mov word [gs:di], 0xc08e
-    inc di
-    jmp acend
+aMS:
+    dec bx ;due to aloop
+    mov al, [es:bx] ;get char
+    cmp dl, 0x41 ;MA
+    je aMA
+    cmp dl, 0x45 ;ME
+    je aME
+    cmp dl, 0x46 ;MF
+    je aMF
+    cmp dl, 0x47 ;MG
+    je aMG
+    jmp aerror
 aMA:
-    ;MOV ESBX
-    sub bx, 2h
+    ;char in al
+    cmp al, 0x45 ;MAE
+    je aMAE
+    cmp al, 0x46 ;MAF
+    je aMAF
+    cmp al, 0x47 ;MAG
+    je aMAG
+    jmp aerror
+aMAE:
     mov byte [gs:di], 0x26
     inc di
     mov word [gs:di], 0x078a
     inc di
     jmp acend
-aMS:
-    ;MOV ESBX
-    sub bx, 2h
+aMAF:
+    mov byte [gs:di], 0x64
+    inc di
+    mov word [gs:di], 0x048a
+    inc di
+    jmp acend
+aMAG:
+    mov byte [gs:di], 0x65
+    inc di
+    mov word [gs:di], 0x058a
+    inc di
+    jmp acend
+aME:
+    cmp al, 0x45 ;mov es, ax
+    je aMEE
+    cmp al, 0x41 ;mov [es:bx], al
+    je aMEA
+    jmp aerror
+aMEE:
+    mov word [gs:di], 0xc08e
+    inc di
+    jmp acend
+aMEA:
     mov byte [gs:di], 0x26
     inc di
     mov word [gs:di], 0x0788
-    inc di    
+    inc di
+    jmp acend
+aMF:
+    cmp al, 0x46 ;mov fs, ax
+    je aMFF
+    cmp al, 0x41 ;mov [fs:si], al
+    je aMFA
+    jmp aerror
+aMFF:
+    mov word [gs:di], 0xe08e
+    inc di
+    jmp acend
+aMFA:
+    mov byte [gs:di], 0x64
+    inc di
+    mov word [gs:di], 0x0488
+    inc di
+    jmp acend
+aMG:
+    cmp al, 0x47 ;mov gs, ax
+    je aMGG
+    cmp al, 0x41 ;mov [gs:di], al
+    je aMGA
+    jmp aerror
+aMGG:
+    mov word [gs:di], 0xe88e
+    inc di
+    jmp acend
+aMGA:
+    mov byte [gs:di], 0x65
+    inc di
+    mov word [gs:di], 0x0588
+    inc di
     jmp acend
 aA:
     ;ADD
@@ -1343,28 +1436,35 @@ aaL:
     mov dx, 0xfec8
     mov ch, 3h
     jmp aregstart2
-aQ:
-    ;SHL
+aZ:
+    ;SH R/L
     call aloop
-    mov dx, 0xc0e0
-    mov ch, 1h
-    jmp aregstart2
-aW:
-    ;SHR
-    call aloop
+    cmp dl, 0x52 ;R
+    je aZR
+    cmp dl, 0x4c ;L
+    je aZL
+    jmp aerror
+aZR:
     mov dx, 0xc0e8
     mov ch, 1h
     jmp aregstart2
-aZ:
-    ;ROL
-    call aloop
-    mov dx, 0xc0c0
+aZL:
+    mov dx, 0xc0e0
     mov ch, 1h
     jmp aregstart2
-aV:
-    ;ROR
+aQ:
     call aloop
+    cmp dl, 0x52 ;R
+    je aQR
+    cmp dl, 0x4c ;L
+    je aQL
+    jmp aerror
+aQR:
     mov dx, 0xc0c8
+    mov ch, 1h
+    jmp aregstart2
+aQL:
+    mov dx, 0xc0c0
     mov ch, 1h
     jmp aregstart2
 aB:
@@ -1679,10 +1779,19 @@ aI:
     mov byte [gs:di], 0xcd ;int
     jmp a1b
 aG:
+    ;IN/OUT
+    inc bx
+    mov dl, [es:bx]
+    cmp dl, 0x49 ;I
+    je aGI
+    cmp dl, 0x4f ;O
+    je aGO
+    jmp aerror
+aGI:
     ;IN
     mov byte [gs:di], 0xe4
     jmp a1b
-aY:
+aGO:
     ;OUT
     mov byte [gs:di], 0xe6
     jmp a1b
@@ -1701,7 +1810,7 @@ aJ:
     inc di
     cmp al, 0x45 ;Equal
     je aJE
-    cmp al, 0x44 ;Different
+    cmp al, 0x4e ;Not equal
     je aJNE
     cmp al, 0x46 ;Greater
     je aJG
@@ -1709,8 +1818,14 @@ aJ:
     je aJGE
     cmp al, 0x4c ;Less
     je aJL
-    cmp al, 0x45 ;Below jle
+    cmp al, 0x42 ;Below jle
     je aJLE
+    cmp al, 0x4f ;Overflow
+    je aJO
+    cmp al, 0x53 ;Signed
+    je aJS
+    cmp al, 0x50 ;Parity
+    je aJP
     jmp aerror
 aJE:
     mov byte [gs:di], 0x84
@@ -1729,6 +1844,15 @@ aJL:
     jmp aJMP
 aJLE:
     mov byte [gs:di], 0x8e
+    jmp aJMP
+aJO:
+    mov byte [gs:di], 0x80
+    jmp aJMP
+aJS:
+    mov byte [gs:di], 0x88
+    jmp aJMP
+aJP:
+    mov byte [gs:di], 0x8a
     jmp aJMP
 aJM:
     mov byte [gs:di], 0xe9 ;jmp
@@ -1979,9 +2103,9 @@ program:
     int 13h ;read
     jmp 0x1200:0x0
     
-    times 171 db 0
+    times 441 db 0
     db 0h ;upper 2 bits cl -- track
-    dw 0h ;0x1000:0xfff -- hd head/track
+    dw 0h ;0x1000:0x11ff -- hd head/track
 
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp

@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.8
+PIKOBRAIN MANUAL v1.2.9
 Hanzlu (2019-2020)
 ---------------------
 
@@ -66,6 +66,7 @@ according to this list:
 7=or
 8=xor
 9=not
+0=floating point division, will return a four digit hexadecimal number, which is the floating point part of the division
 
 6-9 are bitwise operations.
 You should then be displayed with a four digit hexadecimal number which is the answer.
@@ -76,14 +77,18 @@ Enter a four digit hexadecimal number. You will be displayed with the number con
 x, xdec:
 Enter a 5 digit decimal number (max 65535). You will be displayed with the number converted into hexadecimal.
 
+. (dot), float:
+Enter a 4 digit hexadecimal number. This is the floating point part of a number. For example 1/3 = 0.5555 in hexadecimal floating point. If you enter the value
+5555 you'll convert the value into a decimal floating point number, 0.333333. This will be displayed as a dot followed by six digits. This command is not 100% accurate
+in all digits, often the first 4 digits are accurate.
+
 o, os:
 Displays information about the computer. All numbers are in hexadecimal.
-First number is RAM space in hexadecimal and unit kB. This value is probably inaccurate.
-Second number is the number of the boot device. If you have booted from hard drive you must make sure the number is 80. Else file operations will not work. Please
+First number is the number of the boot device. If you have booted from hard drive you must make sure the number is 80. Else file operations will not work. Please
 contact Hanzlu if the number is different.
-Third number is the highest folder number you can enter. This number should always be known by the user. It shall also be known that the number is three 2-digit hexadecimal numbers and each of the numbers can not be higher than it is. For example my test machine displayes the number 03FEFE, which means I cannot enter folder
+Second number is the highest folder number you can enter. This number should always be known by the user. It shall also be known that the number is three 2-digit hexadecimal numbers and each of the numbers can not be higher than it is. For example my test machine displayes the number 03FEFE, which means I cannot enter folder
 03FEFF, because that exceeds the limit of the third 2-digit hexadecimal number. More info about folders in the FOLDERS and FILES categories.
-Fourth number is the highest file you can access within a single folder.
+Third number is the highest file you can access within a single folder.
 
 FOLDERS
 -------
@@ -91,11 +96,12 @@ FOLDERS
 You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen, I don't know I haven't tried.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access a maximum
 of 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
-You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-08 are reserved for the operating system, do not edit them if you do 
+You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-09 are reserved for the operating system, do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
 When inserting a folder number as an argument you can use two shortcuts. By pressing two times on the enter button you will select the current folder. This will move 
-the cursor to the begining of the line and display a star '*'. By pressing two times on a letter key (suggesting the h key) you select the 'home' folder (000000).
-When you use these shortcuts you must only do two key presses rather than 6.
+the cursor to the begining of the line and display a star '*'. By pressing two times on the h letter key you select the 'home' folder (000000).
+By pressing semi-colon twice you'll be able to insert a two digit number to alter only the last two digits of the file number.
+When you use these shortcuts you must only do two (or four) key presses rather than 6.
 
 f, folder:
 Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits. 
@@ -103,7 +109,7 @@ Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do
 i, info:
 Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that do not have an ASCII 
 00 (hex) character as its first character will be displayed. 
-Files are displayed with their number, followed by a dot and the first 5 characters of the file. The first 5 characters can therefore be used as a file name.
+Files are displayed with their number, followed by a dot and the first 10 characters of the file. The first 10 characters can therefore be used as a file name.
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
 
 z, zero:
@@ -128,7 +134,7 @@ second time Pikobrain will save all the text between the two key presses. **Now 
 To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
 between files.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
-Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input'. This will be fixed soon.
+Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input'.
 If you hold shift and the ` button (left of 1) you'll be displayed with a ~ character and a four digit hexadecimal number. This number shows you the number of characters
 the file currently holds out of the maximum 512 bytes (0200 hex). Press any key and you can continue writing.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
@@ -177,22 +183,23 @@ O, or
 X, xor
 C, compare
 
-Here is a list of 1 character mneumonics taking two arguments where the second argument must be a number:
-Q, (shl)
-W, (shr)
-Z, (rol)
-V, (ror)
+Here is a list of 2 character mneumonics taking two arguments; a 8-bit register and a number (byte) and the mneumonic ends with either R (right) or L (left):
+Z, (shift), ZR = shr, ZL = shl
+Q, (rotate), QR = ror, QL = rol
+Notice that these mneumonics cannot use 16-bit registers.
+
+Here is a list of 2 character mneumonics taking only a number (byte) as argument and where the mneumonic ends with either I (in) or O (out):
+G, GI = in, GO = out
+notice that the al register is automatically used so you do not specify a registor, just the number.
 
 Here is a list of 1 character mneumonics in Pikobrain (one argument). Mneumonics marked with a * can only have 16 bit registers as arguments (and work in a special 
-way), those marked with a / can only take a value as argument, those with a \ can only take registers:
+way), those marked with a / can only take a value (byte) as argument, those with a \ can only take registers:
 T, times\ (mul)
 D, divide\
 H, higher\ (inc)
 L, lower\ (dec)
 N, not\
 I, int/
-G, / (in)
-Y, / (out) (in both in and out, you do not specify the registor. The AL registor is automatically used. in al, 0x60 is G 60)
 U, push* (if you want to push ax you write UA, so no X and everything in one mneumonic. UA, UB, UC UD, US and UT are in other words the ones you can use. Same for pop below)
 P, pop* (PA, PB, PC, PD, PS, PT)
 K, kreate/ (db) (defines a byte (K 20))
@@ -204,17 +211,29 @@ In order to call a function you use F (function) (call) followed by a label name
 In order to return from a function call you must write an R (ret).
 The following conditional jumps exist:
 JE, jump equal
-JD, jump different (jne)
+JN, jump not equal (jne)
 JG, jump greater
 JA, jump above or equal (jge)
 JL, jump less
 JB, jump below or equal (jle)
+JO, jump overflow
+JS, jump signed
+JP, jump parity
 The conditional jumps works like JM regarding the labels 
 
-Other commands are:
-ME, (mov es, ax)
-MA, (mov al, [es:bx])
-MS, (mov [es:bx], al)
+Segmentation:
+Segmentation is possible with es:bx, fs:si and gs:di:
+MEE, mov es, ax
+MEA, mov [es:bx], al
+MAE, mov al, [es:bx]
+MFF, mov fs, ax
+MFA, mov [fs:si], al
+MAF, mov al, [fs:si]
+MGG, mov gs, ax
+MGA, mov [gs:di], al
+MAG, mov al, [gs:di]
+
+Other commands:
 E, End (this will ask the user for a key press and return the control of the computer back to the OS) (this command is necessary when ending a program)
 e, end (this marks the end of the source code, the command is necessary for the ending the source code)
 The E and e should probably be consecutive in the code when you which for the program to end. You can have multiple E mneumonics but only one e mneumonic.
@@ -235,6 +254,10 @@ If you get the four digit number and two e characters it means you have both a g
 
 p, program:
 The 'p' command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will jump to the user's program. Therefore it is necessary to include the Ee mneumonics in the code, so that control is given back to the operating system.
+
+**CUSTOMIZATION
+---------------
+By altering the value at location 1000:020E you can change the colors the screen has.
 
 TROUBLES
 --------
