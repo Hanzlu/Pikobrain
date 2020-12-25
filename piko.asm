@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.9", 0xd, 0xa
+    db "Pikobrain v1.2.10", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -660,7 +660,7 @@ wchar:
     int 10h
     jmp typechar
 wcopy:
-    mov ax, 0x1150
+    mov ax, 0x2100
     mov gs, ax
     mov si, 0h
     cmp byte [gs:si], 0h
@@ -1100,7 +1100,7 @@ zend:
     jmp input
 
 search:
-    mov ax, 0x1120
+    mov ax, 0x2000
     mov gs, ax
     mov di, 0x0 ;gs:di search word
 sword:

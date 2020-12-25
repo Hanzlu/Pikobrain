@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.9
+PIKOBRAIN MANUAL v1.2.10
 Hanzlu (2019-2020)
 ---------------------
 
@@ -36,7 +36,7 @@ COMMANDS
 Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters
 when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or
 more digits) hexadecimal numbers (most of the time). Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). If you want to quit writing a command (perhaps you wrote the wrong number)
-you can press the backspace button. This will bring you back to the "input" where you enter commands.
+you can press the backspace button. This will bring you back to the "input" where you enter commands. **This can fill up the stack with unused ip values.
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
@@ -232,6 +232,9 @@ MAF, mov al, [fs:si]
 MGG, mov gs, ax
 MGA, mov [gs:di], al
 MAG, mov al, [gs:di]
+User made programs should use segmentation starting from 5000:0000, else you might get into space that the OS uses. **Whereas it could not be a problem to do segmentation
+below 5000:0000, you should at least not do it near 1200:0000 as that is where pikobrain reads the hard disk. The text editor's copy function uses location 2100:0000 and
+the bytes following that location, so do not do anything there if you want copying to work.
 
 Other commands:
 E, End (this will ask the user for a key press and return the control of the computer back to the OS) (this command is necessary when ending a program)
