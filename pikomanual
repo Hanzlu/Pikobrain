@@ -12,7 +12,7 @@ Lines starting with ** are technical details.
 Pikobrain was originally intended to be an operating system in which I could use an low-level esoteric programming language I had made (ACL). However, those ideas where
 forgotten the more I coded Pikobrain. Pikobrain was initially an operating system written with the intention to have a source code which was as small as possible. This
 meant the operating system couldn't be very user-friendly or advanced, and still today Pikobrain is supposed to be quite small, but also user-friendly to an accepted
-level. The name Pikobrain comes from the 'big brain meme'. Piko means 10^-12 which is small, just like Pikobrain itself. In other words, PIkobrain is the opposite of big brain.
+level. The name Pikobrain comes from the 'big brain meme'. Piko means 10^-12 which is small, just like Pikobrain itself. In other words, Pikobrain is the opposite of big brain.
 Development begun in late 2019, and has continued since then in unregular patterns of temporary activity.
 
 
@@ -40,7 +40,7 @@ you can press the backspace button. This will bring you back to the "input" wher
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
-Displays the current time in hh:mm:ss format.
+Displays the current time in hh:mm:ss format. Daylight saving time not supported.
 
 d, date:
 Displays the current date in yyyy/mm/dd format.
