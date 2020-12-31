@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.10", 0xd, 0xa
+    db "Pikobrain v1.2.11", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -39,7 +39,7 @@ bootloader:
 	mov ss, ax      ;stack segment
     mov ax, 0x7c0
     mov ds, ax      ;data segment
-	mov sp, 0x1000 
+	mov sp, 0x1000
 
     ;store dl
     mov [bootdrive], dl
@@ -84,7 +84,7 @@ bootdl2:
     mov es, ax
     mov bx, 0x0
     ;read
-    mov ax, 0x209 ;files to read 8x
+    mov ax, 0x209 ;files to read 9x
     mov cx, 1h
     mov dh, 0h ;dl set
     int 13h
@@ -107,7 +107,7 @@ boot81:
 install:
     ;write files to hard drive
     mov bx, 0h
-    mov ax, 0x309 ;8x files to write
+    mov ax, 0x309 ;9x files to write
     mov cx, 1h
     int 13h
     mov dl, 0h ;since dl was changed
@@ -118,7 +118,7 @@ jmppb:
     ;check boot
     cmp dl, 0x80
     jne success
-    jmp 0x1020:0x0 ;pikobrain input
+    jmp 0x1000:0x0200 ;pikobrain input
 
 success:
     mov ax, 0xe53 ;S
@@ -218,7 +218,6 @@ readfile:
     mov es, ax
     mov bx, 0x0
     call filenum
-    and cl, 0x3f ;remove high order bits
     call setfolder
     ;get filenum
     mov ax, 0x201
@@ -289,6 +288,7 @@ filenquit:
 
 setfolder:
     ;set folder
+    and cl, 0x3f ;clear upper bits
     mov ax, 0x1000
     mov fs, ax
     mov si, 0x11fd ;OS size depending
@@ -462,6 +462,7 @@ typechar:
     mov ah, 2h
     pop dx
     int 10h
+wgetchar:
     ;get char to write
     mov ah, 0h
     int 16h
@@ -517,7 +518,7 @@ wleft:
     je wleftnl
     mov ax, 0xe08 ;backspace
     int 10h
-    jmp typechar
+    jmp wgetchar
 wleftnl:
     ;move cursor
     dec ah ;2h
@@ -541,7 +542,7 @@ wright:
     dec ah ;2h
     inc dl
     int 10h
-    jmp typechar
+    jmp wgetchar
 wrightnl:
     inc di
     ;move cursor
@@ -550,9 +551,9 @@ wrightnl:
     mov dl, 0h
     int 10h
     cmp byte [es:di], 0xa ;newline
-    jne typechar
+    jne wgetchar
     inc di
-    jmp typechar
+    jmp wgetchar
 backspace:
     ;get cursor position
     mov ah, 3h
@@ -712,7 +713,6 @@ save:
     mov bx, 0x0 ;reset
     mov dl, 0x80   
     pop cx
-    and cl, 0x3f ;remove high order bits
     ;set ch and dh
     call setfolder 
     mov ax, 0x301
@@ -736,7 +736,6 @@ copy:
     mov bx, 0h
     ;read
     call filenum ;filenum
-    and cl, 0x3f ;remove upper bits
     push cx
     call filenum ;number of files
     mov al, cl
@@ -752,7 +751,6 @@ copy:
     ;write
     call folder ;set dest folder
     call filenum
-    and cl, 0x3f ;remove upper bits
     call setfolder
     pop ax ;same number
     inc ah
@@ -1002,7 +1000,6 @@ info:
     mov dl, 0x80
     mov ax, 0x201
     int 13h ;read
-    and cl, 0x3f ;clear upper bits
 iloop:
     mov al, [es:bx]
     cmp al, 0h ;is empty?
@@ -1042,7 +1039,6 @@ ilend:
     mov ax, 0x201
     mov bx, 0h
     int 13h
-    and cl, 0x3f ;clear upper bits 
     ;check di
     cmp di, 3h
     je idi3 
@@ -1072,7 +1068,6 @@ zloop:
     mov ax, 0x201
     mov bx, 0h ;must be here! reset
     int 13h
-    and cl, 0x3f ;clear upper bits
 zread:
     mov al, [es:bx]
     cmp al, 0h ;end of content
@@ -1090,7 +1085,6 @@ zwrite:
     ;write
     mov ax, 0x301
     int 13h
-    and cl, 0x3f ;clear upper bits
 zend:
     inc cl
     cmp cl, 0x40 ;end of folder
@@ -1131,16 +1125,13 @@ sloop:
     mov bx, 0h ;must be here! reset
     mov ax, 0x201
     int 13h
-    and cl, 0x3f ;clear upper bits
 scomp:
     mov al, [es:bx]
     mov dl, [gs:di]
     cmp dl, 0xd
     je sfind
     cmp al, dl
-    je snext
-    jmp snot
-snext:
+    jne snot
     inc bx
     inc di
     jmp scomp
@@ -1257,6 +1248,8 @@ aconv:
     je aF
     cmp al, 0x52 ;Ret
     je aR
+    cmp al, 0x57 ;macro w
+    je aW
     cmp al, 0x2e ;. label
     je aLabel
     cmp al, 0x4b ;db kreate
@@ -1760,7 +1753,7 @@ aUP:
     cmp al, 0x53 ;SX (SI)
     je aU6
     cmp al, 0x54 ;TX (DI)
-    jmp aerror
+    jne aerror
 aU7:
     inc dl
 aU6:
@@ -1800,6 +1793,60 @@ aF:
     jmp aJMP
 aR: 
     mov byte [gs:di], 0xc3 ;ret
+    jmp acend
+aW:
+    ;macros, using pikobrain functions
+    mov byte [gs:di], 0xe8 ;call
+    inc bx
+    inc di
+    mov cx, 0xe200 ;difference betwwen segment 0x1020: and 0x1200:, stores jump lenght
+    mov al, [es:bx] ;next char
+    cmp al, 0x41 ;atohex
+    je aWA
+    cmp al, 0x45 ;enter
+    je aWE
+    cmp al, 0x46 ;folder
+    je aWF
+    cmp al, 0x48 ;xtoasc Hex
+    je aWH
+    cmp al, 0x4e ;fileNum
+    je aWN
+    cmp al, 0x53 ;setfolder
+    je aWS
+    cmp al, 0x57 ;neW
+    je aWW
+    cmp al, 0x58 ;xtox
+    je aWX
+    jmp aerror
+aWA:
+    add cx, 0xd3 ;location of atohex ------------- WARNING! VALUES ARE HARD CODED
+    jmp aWend
+aWE:
+    add cx, 0x97 ;location of enter
+    jmp aWend
+aWF:
+    add cx, 0x134 ;location of folder
+    jmp aWend
+aWH:
+    add cx, 0xdc ;location of xtoasc
+    jmp aWend
+aWN:
+    add cx, 0xe5 ;location of filenum
+    jmp aWend
+aWS:
+    add cx, 0x10f ;location of setfolder
+    jmp aWend
+aWW:
+    add cx, 0x05 ;location of new
+    jmp aWend
+aWX:
+    add cx, 0xb7 ;location of xtox
+    jmp aWend
+aWend:
+    sub cx, di
+    sub cx, 2h
+    mov word [gs:di], cx
+    inc di
     jmp acend
 aJ:
     inc bx
@@ -1908,7 +1955,7 @@ aE:
     add di, 4h
     mov byte [gs:di], 0xea ;jmp seg:off
     inc di
-    mov dword [gs:di], 0x10200000
+    mov dword [gs:di], 0x10000200 ;cs does not change
     add di, 3h
     jmp acend
 aComment:
@@ -1965,14 +2012,6 @@ agetbyte:
     call atohex
     add al, ah ;put ah nibble into al
     ret
-a4b:
-    ;get 4 bytes
-    call agetbyte
-    inc di
-    mov [gs:di], al
-    call agetbyte
-    inc di
-    mov [gs:di], al
 a2b:
     ;get 2 bytes
     call agetbyte
@@ -2046,9 +2085,8 @@ ascompeq:
     sub dx, cx ;calculate jump length
     sub dx, 2h ;remove yet 2 because of how jumps apparently work
     mov bx, cx
-    mov [gs:bx], dl ;store jump length, must use bx
+    mov [gs:bx], dx ;store jump length, must use bx
     inc bx
-    mov [gs:bx], dh ;NOTICE reversed order - stupid assembly
     ;set values
     pop ax ;take down si
     inc si
@@ -2067,7 +2105,6 @@ awrite:
     mov bx, 0h
     ;destination file
     call filenum
-    and cl, 0x3f
     call setfolder
     mov ax, di ;calculate number of files to save: di//0x200
     shr ax, 8h
@@ -2094,16 +2131,15 @@ program:
     mov dl, cl ;store for al
     ;set cx
     pop cx
-    and cl, 0x3f
     ;folder
     call setfolder
     mov ah, 2h
     mov al, dl
     mov dl, 0x80 ;drive
     int 13h ;read
-    jmp 0x1200:0x0
+    jmp 0x1000:0x2000
     
-    times 441 db 0
+    times 377 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 

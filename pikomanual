@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.10
+PIKOBRAIN MANUAL v1.2.11
 Hanzlu (2019-2020)
 ---------------------
 
@@ -98,10 +98,11 @@ The first 2 digit hexadecimal number of the current folder can be a maximum of 0
 of 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
 You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-09 are reserved for the operating system, do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
-When inserting a folder number as an argument you can use two shortcuts. By pressing two times on the enter button you will select the current folder. This will move 
+When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the enter button you will select the current folder. This will move 
 the cursor to the begining of the line and display a star '*'. By pressing two times on the h letter key you select the 'home' folder (000000).
 By pressing semi-colon twice you'll be able to insert a two digit number to alter only the last two digits of the file number.
-When you use these shortcuts you must only do two (or four) key presses rather than 6.
+When you use these shortcuts you must only do two (or four) key presses rather than 6. Whenever you insert values, they are saved, so if you enter 02 and then press
+backspace, the 02 will still be saved.
 
 f, folder:
 Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits. 
@@ -235,6 +236,18 @@ MAG, mov al, [gs:di]
 User made programs should use segmentation starting from 5000:0000, else you might get into space that the OS uses. **Whereas it could not be a problem to do segmentation
 below 5000:0000, you should at least not do it near 1200:0000 as that is where pikobrain reads the hard disk. The text editor's copy function uses location 2100:0000 and
 the bytes following that location, so do not do anything there if you want copying to work.
+
+Macros:
+To simplify some of the programming, you can access some of the functions Pikobrain call by using the following mneumonics. The list describes the functions and lists
+the registers that are affected by using the macro:
+WA, converts al from ASCII to HEX. If al is 42 (ascii B) for example it becomes 0B as that is hexadecimal. [al]
+WE, prints a newline. [ax]
+WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x11fd-0x11ff. [ax, cl, fs, si]
+WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
+WN, let's the user input a two digit hex number which is stored in cl. The user cannot press backspace as this will make the program end and jump back to the input. [ax, cl]
+WS, is used to set dh, ch, and cl before a file operation (int 13h). It takes the values inserted when using WF, and are all set to 0 at bootup. [ax, cx, dh, fs, si]
+WW, works like the n command in the input, clears the screen. [ax, bh, cx, dx]
+WX, outputs the value in ch as ASCII. If ch is 34 hex for example, it will be printed as "34". [ax, ch]
 
 Other commands:
 E, End (this will ask the user for a key press and return the control of the computer back to the OS) (this command is necessary when ending a program)
