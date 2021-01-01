@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.2.11
+PIKOBRAIN MANUAL v1.3
 Hanzlu (2019-2020)
 ---------------------
 
@@ -36,11 +36,12 @@ COMMANDS
 Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters
 when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or
 more digits) hexadecimal numbers (most of the time). Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). If you want to quit writing a command (perhaps you wrote the wrong number)
-you can press the backspace button. This will bring you back to the "input" where you enter commands. **This can fill up the stack with unused ip values.
+you can press the backspace button. This will bring you back to the "input" where you enter commands. **This clears the stack.
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
-Displays the current time in hh:mm:ss format. Daylight saving time not supported.
+Displays the current time in hh:mm:ss format. Daylight saving time not directly supported. **To the hour value, the number at 0x1000:0x3f2 is added. So if you would want
+the hour to be one less, you should change the value to FF (hex).
 
 d, date:
 Displays the current date in yyyy/mm/dd format.
@@ -50,6 +51,12 @@ Newline and carriage return as expected.
 
 n, new:
 Clears the screen and moves the cursor to the top left.
+
+arrow keys, arrow:
+Moves the cursor in the expected directions.
+
+b, back:
+Moves the cursor to the top left of the screen
 
 The following commands take multi digit numbers as arguments. They are always of a certain lenght which means that if you want to enter the number 1, you will have to
 write 01 for example, by adding zero(s) in the begining.
@@ -221,6 +228,7 @@ JO, jump overflow
 JS, jump signed
 JP, jump parity
 The conditional jumps works like JM regarding the labels 
+In order to perform a far jump you use the JF mneumonic followed by a 4 byte value written backwards. 0x1000:0x2000 would be 00200010
 
 Segmentation:
 Segmentation is possible with es:bx, fs:si and gs:di:
@@ -233,9 +241,7 @@ MAF, mov al, [fs:si]
 MGG, mov gs, ax
 MGA, mov [gs:di], al
 MAG, mov al, [gs:di]
-User made programs should use segmentation starting from 5000:0000, else you might get into space that the OS uses. **Whereas it could not be a problem to do segmentation
-below 5000:0000, you should at least not do it near 1200:0000 as that is where pikobrain reads the hard disk. The text editor's copy function uses location 2100:0000 and
-the bytes following that location, so do not do anything there if you want copying to work.
+**User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program. Also the text editors copy buffer starts at 0x1150:0x0.
 
 Macros:
 To simplify some of the programming, you can access some of the functions Pikobrain call by using the following mneumonics. The list describes the functions and lists

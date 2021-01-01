@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.2.11", 0xd, 0xa
+    db "Pikobrain v1.3", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -155,9 +155,12 @@ input:
     ;char input
     mov ah, 0h
     int 16h
+    mov bh, 0h ;graphics reason
 
     cmp al, 0xd  ;enter
     je callenter  
+    cmp al, 0x62 ;b
+    je back
     cmp al, 0x64 ;d
     je date
     cmp al, 0x74 ;t
@@ -196,6 +199,43 @@ input:
     je assembly
     cmp al, 0x70 ;p
     je program
+    
+    ;else arrows
+arrow:
+    mov al, ah
+    ;get cursor location
+    mov ah, 3h
+    int 10h
+    cmp al, 0x48 ;up
+    je arrowup
+    cmp al, 0x50 ;down
+    je arrowdown
+    cmp al, 0x4b ;left
+    je arrowleft
+    cmp al, 0x4d ;right
+    je arrowright
+    jmp input
+arrowup:
+    dec dh
+    jmp arrowend
+arrowdown:
+    inc dh
+    jmp arrowend
+arrowleft:
+    dec dl
+    jmp arrowend
+arrowright:
+    inc dl
+arrowend:
+    mov ah, 2h ;set cursor
+    int 10h
+    jmp input
+
+back:
+    ;move cursor to top left
+    mov ah, 2h
+    mov dx, 0h
+    int 10h
     jmp input
 
 ;**********
@@ -284,7 +324,9 @@ filenum:
     ret
 filenquit:
     pop ax ;pop ip because function
-    jmp input
+    cmp sp, 0x1000 ;if stack is empty
+    jne filenquit
+    jmp callnew ;connot be used as a assembly macro
 
 setfolder:
     ;set folder
@@ -374,6 +416,7 @@ time:
     ;output
     mov ah, 2h
     int 1ah
+    add ch, 0h ;this value can be changed to set the time
     call xtox
     mov ax, 0xe3a ;:
     int 10h
@@ -661,7 +704,7 @@ wchar:
     int 10h
     jmp typechar
 wcopy:
-    mov ax, 0x2100
+    mov ax, 0x1150 ;near end of OS code!
     mov gs, ax
     mov si, 0h
     cmp byte [gs:si], 0h
@@ -1011,7 +1054,7 @@ iloop:
     int 10h
     mov ch, 0h ;char counter
 iwloop:
-    ;write 5 chars
+    ;write chars
     mov al, [es:bx]
     cmp al, 0x20 ;space
     jge iw
@@ -1040,11 +1083,10 @@ ilend:
     mov bx, 0h
     int 13h
     ;check di
-    cmp di, 3h
+    cmp di, 5h ;x columns
     je idi3 
     jmp iloop
 idi3:
-    call enter
     mov di, 0h
     jmp iloop
 
@@ -1819,28 +1861,28 @@ aW:
     je aWX
     jmp aerror
 aWA:
-    add cx, 0xd3 ;location of atohex ------------- WARNING! VALUES ARE HARD CODED
+    add cx, 0x114 ;location of atohex ------------- WARNING! VALUES ARE HARD CODED
     jmp aWend
 aWE:
-    add cx, 0x97 ;location of enter
+    add cx, 0xd8 ;location of enter
     jmp aWend
 aWF:
-    add cx, 0x134 ;location of folder
+    add cx, 0x17b ;location of folder
     jmp aWend
 aWH:
-    add cx, 0xdc ;location of xtoasc
+    add cx, 0x11d ;location of xtoasc
     jmp aWend
 aWN:
-    add cx, 0xe5 ;location of filenum
+    add cx, 0x126 ;location of filenum
     jmp aWend
 aWS:
-    add cx, 0x10f ;location of setfolder
+    add cx, 0x156 ;location of setfolder
     jmp aWend
 aWW:
     add cx, 0x05 ;location of new
     jmp aWend
 aWX:
-    add cx, 0xb7 ;location of xtox
+    add cx, 0xf8 ;location of xtox
     jmp aWend
 aWend:
     sub cx, di
@@ -1853,13 +1895,15 @@ aJ:
     mov al, [es:bx]
     cmp al, 0x4d ;M
     je aJM
+    cmp al, 0x46 ;F
+    je aJF
     mov byte [gs:di], 0x0f ;conditional far jump
     inc di
     cmp al, 0x45 ;Equal
     je aJE
     cmp al, 0x4e ;Not equal
     je aJNE
-    cmp al, 0x46 ;Greater
+    cmp al, 0x47 ;Greater
     je aJG
     cmp al, 0x41 ;Above jge
     je aJGE
@@ -1925,6 +1969,10 @@ aJMl:
 aJMlend:
     inc si
     jmp acend
+aJF:
+    ;far jump
+    mov byte [gs:di], 0xea
+    jmp a4b
 aLabel:
     mov ax, 0x4200 ;fs:si stores jmp labels
     mov fs, ax
@@ -2012,6 +2060,14 @@ agetbyte:
     call atohex
     add al, ah ;put ah nibble into al
     ret
+a4b:
+    ;get 4 bytes
+    call agetbyte
+    inc di
+    mov [gs:di], al
+    call agetbyte
+    inc di
+    mov [gs:di], al
 a2b:
     ;get 2 bytes
     call agetbyte
@@ -2139,7 +2195,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 377 db 0
+    times 279 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
