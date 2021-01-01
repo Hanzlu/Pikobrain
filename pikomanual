@@ -40,8 +40,7 @@ you can press the backspace button. This will bring you back to the "input" wher
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
-Displays the current time in hh:mm:ss format. Daylight saving time not directly supported. **To the hour value, the number at 0x1000:0x3f2 is added. So if you would want
-the hour to be one less, you should change the value to FF (hex).
+Displays the current time in hh:mm:ss format. Daylight saving time not supported.
 
 d, date:
 Displays the current date in yyyy/mm/dd format.

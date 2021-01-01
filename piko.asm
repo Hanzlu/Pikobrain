@@ -416,7 +416,6 @@ time:
     ;output
     mov ah, 2h
     int 1ah
-    add ch, 0h ;this value can be changed to set the time
     call xtox
     mov ax, 0xe3a ;:
     int 10h
@@ -1873,10 +1872,10 @@ aWH:
     add cx, 0x11d ;location of xtoasc
     jmp aWend
 aWN:
-    add cx, 0x126 ;location of filenum
+    add cx, 0x125 ;location of filenum
     jmp aWend
 aWS:
-    add cx, 0x156 ;location of setfolder
+    add cx, 0x155 ;location of setfolder
     jmp aWend
 aWW:
     add cx, 0x05 ;location of new
@@ -2195,7 +2194,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 279 db 0
+    times 282 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
