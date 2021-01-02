@@ -1043,6 +1043,7 @@ info:
     mov ax, 0x201
     int 13h ;read
 iloop:
+    and cl, 0x3f ;cear upper bits
     mov al, [es:bx]
     cmp al, 0h ;is empty?
     je ilend
@@ -1109,6 +1110,7 @@ zloop:
     mov ax, 0x201
     mov bx, 0h ;must be here! reset
     int 13h
+    and cl, 0x3f ;clear upper bits, since else will be wrong next time calling setfolder
 zread:
     mov al, [es:bx]
     cmp al, 0h ;end of content
@@ -1126,6 +1128,7 @@ zwrite:
     ;write
     mov ax, 0x301
     int 13h
+    and cl, 0x3f ;clear upper bits
 zend:
     inc cl
     cmp cl, 0x40 ;end of folder
@@ -1166,6 +1169,7 @@ sloop:
     mov bx, 0h ;must be here! reset
     mov ax, 0x201
     int 13h
+    and cl, 0x3f ;clear upper bits
 scomp:
     mov al, [es:bx]
     mov dl, [gs:di]
@@ -2194,7 +2198,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 282 db 0
+    times 270 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
