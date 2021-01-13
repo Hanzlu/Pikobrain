@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.3
+PIKOBRAIN MANUAL v1.3.1
 Hanzlu (2019-2020)
 ---------------------
 
@@ -125,7 +125,7 @@ first character, as those files are seen as empty by the OS.
 In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake. You will be displayed with the character you press.
 
 s, search:
-Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them. Press enter to start the search.
+Enter a character, word or string. Pikobrain will display which files within the current folder that has that character, word or string within them. Press enter to start the search. Can use backspace.
 
 FILES
 -----
@@ -135,9 +135,12 @@ Files in Pikobrain are automatically 512 bytes long. You can't change this, besi
 
 w, write:
 Enter a file number. You can now write a file. You can use the enter button and the backspace button. The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once. Spaces before newline characters are automatically removed, as else backspace will work unexpectedly.
-You can use the left and right arrow keys to move the cursor around the document.
+You can use the left and right arrow keys to move the cursor around the document. By pressing the home key the cursor moves to the start of the file. The end key moves
+the cursor to the end of the file.
 In order to copy text which you can paste later, you press the down arrow. Pikobrain remembers the character at which the cursor is. When you press the down arrow a
 second time Pikobrain will save all the text between the two key presses. **Now Pikobrain has a buffer of text which you can paste.
+When you press the down arrow for the second time you can type the '|' character instead, to cut the text rather than just copying it. This will only work if the cursor
+was closer to the top left of the screen (start of file) when you typed '|'.
 To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
 between files.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
@@ -240,7 +243,7 @@ MAF, mov al, [fs:si]
 MGG, mov gs, ax
 MGA, mov [gs:di], al
 MAG, mov al, [gs:di]
-**User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program. Also the text editors copy buffer starts at 0x1150:0x0.
+**User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program. Also the text editors copy buffer starts at 0x2000:0x0.
 
 Macros:
 To simplify some of the programming, you can access some of the functions Pikobrain call by using the following mneumonics. The list describes the functions and lists

@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.3", 0xd, 0xa
+    db "Pikobrain v1.3.1", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -515,10 +515,16 @@ wgetchar:
     je wleft
     cmp ah, 0x4d ;right arrow
     je wright
+    cmp al, 0x7c ;| cut
+    je wcopy
     cmp ah, 0x50 ;down arrow
     je wcopy
     cmp ah, 0x48 ;up arrow
     je wpaste
+    cmp ah, 0x47 ;home
+    je whome
+    cmp ah, 0x4f ;end
+    je wend
     ;write character typed
     mov ah, 0xe
     int 10h
@@ -532,7 +538,9 @@ wgetchar:
     cmp al, 0x5c ;\ special char
     je wspecial 
     cmp al, 0x7e ;~ char count
-    je wchar 
+    je wchar
+    cmp byte [es:di], 0h ;end of file
+    je wwend 
     call wloopstart
     cmp si, 0x200
     jge save
@@ -551,6 +559,12 @@ wloop:
     inc di
 wloopend:
     ret
+wwend:
+    mov [es:di], al
+    inc di
+    cmp di, 0x200 ;end of file
+    jge save
+    jmp wgetchar
 wleft:
     dec di
     ;get cursor location
@@ -572,6 +586,9 @@ wleftnl:
     dec di
     jmp wbnloop
 wright:
+    call wright2
+    jmp wgetchar
+wright2:
     ;get cursor location
     mov ah, 3h
     int 10h
@@ -584,7 +601,7 @@ wright:
     dec ah ;2h
     inc dl
     int 10h
-    jmp wgetchar
+    ret
 wrightnl:
     inc di
     ;move cursor
@@ -593,9 +610,9 @@ wrightnl:
     mov dl, 0h
     int 10h
     cmp byte [es:di], 0xa ;newline
-    jne wgetchar
+    jne athback ;=ret
     inc di
-    jmp wgetchar
+    ret
 backspace:
     ;get cursor position
     mov ah, 3h
@@ -674,6 +691,17 @@ wenterspace:
     int 10h
     call wloopstart
     jmp typechar
+whome:
+    mov ah, 2h ;move cursor to top left
+    mov dx, 0h
+    int 10h
+    mov di, 0h
+    jmp wgetchar
+wend:
+    cmp byte [es:di], 0h ;end of the file
+    je wgetchar
+    call wright2
+    jmp wend
 wspecial:
     ;get special char code
     mov ax, 0xe08 ;backspace
@@ -703,7 +731,9 @@ wchar:
     int 10h
     jmp typechar
 wcopy:
-    mov ax, 0x1150 ;near end of OS code!
+    push dx
+    mov dl, al ;if 32h cut
+    mov ax, 0x2000 ;location can be used by other stuff somehow!!!?
     mov gs, ax
     mov si, 0h
     cmp byte [gs:si], 0h
@@ -711,6 +741,7 @@ wcopy:
     mov byte [gs:si], 1h ;start copying
     inc si
     mov [gs:si], di ;location of current char
+    pop dx ;return
     jmp typechar
 wccopy:
     mov byte [gs:si], 0h ;end of copying
@@ -724,7 +755,19 @@ wccopy:
     mov bx, ax
 wcsave:
     mov al, [es:bx]
-    mov byte [gs:si], al
+    mov [gs:si], al
+    cmp dl, 0x7c ;cut
+    jne wccon
+    push si
+    mov si, bx
+    call wbloop
+    pop si
+    cmp bx, cx
+    je wcsavend
+    dec cx ;make bx remain stationary
+    inc si
+    jmp wcsave
+wccon:
     cmp bx, cx
     je wcsavend ;all characters copied
     inc bx
@@ -733,6 +776,11 @@ wcsave:
 wcsavend:
     inc si
     mov byte [gs:si], 0h ;end of copy
+    cmp dl, 0x7c ;cut
+    jne wsendc
+    mov di, bx
+wsendc:
+    pop dx
     jmp typechar
 wpaste:
     mov si, 1h
@@ -741,9 +789,9 @@ wcsi:
     mov al, [gs:si]
     cmp al, 0h ;end of copy
     je wpastend
-    call wloopstart ;write character
-    mov ax, 0xe30 ;move cursor
+    mov ah, 0xe ;move cursor according to character
     int 10h
+    call wloopstart ;write character
     pop si
     inc si
     jmp wcsi
@@ -1145,6 +1193,16 @@ sword:
     ;get char
     mov ah, 0h
     int 16h
+    cmp al, 8h ;backspace
+    jne swordcon
+    dec di
+    mov byte [gs:di], 0h
+    mov ah, 0xe
+    int 10h
+    mov ax, 0xa20 ;space
+    int 10h
+    jmp sword
+swordcon:
     mov [gs:di], al ;store
     ;if enter=end
     cmp al, 0xd
@@ -1876,7 +1934,7 @@ aWH:
     add cx, 0x11d ;location of xtoasc
     jmp aWend
 aWN:
-    add cx, 0x125 ;location of filenum
+    add cx, 0x126 ;location of filenum
     jmp aWend
 aWS:
     add cx, 0x155 ;location of setfolder
@@ -2198,7 +2256,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 270 db 0
+    times 144 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
