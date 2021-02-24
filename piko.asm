@@ -6,11 +6,12 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.3.1", 0xd, 0xa
+    db "Pikobrain v1.3.2", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "n new", 0xd, 0xa
+    db "b back", 0xd, 0xa
     db "o os", 0xd, 0xa
     db "k [4h] [4h] [1d] kalc", 0xd, 0xa
     db "h [4h] hex", 0xd, 0xa
@@ -135,6 +136,10 @@ success:
 ;PIKOBRAIN
 ;**********    
 
+    mov ax, 0x1120
+    mov es, ax
+    mov bx, 0h
+    mov byte [es:bx], 0h
 
 callnew:
     call new
@@ -733,7 +738,7 @@ wchar:
 wcopy:
     push dx
     mov dl, al ;if 32h cut
-    mov ax, 0x2000 ;location can be used by other stuff somehow!!!?
+    mov ax, 0x1120
     mov gs, ax
     mov si, 0h
     cmp byte [gs:si], 0h
@@ -1922,28 +1927,28 @@ aW:
     je aWX
     jmp aerror
 aWA:
-    add cx, 0x114 ;location of atohex ------------- WARNING! VALUES ARE HARD CODED
+    add cx, 0x120 ;location of atohex ------------- WARNING! VALUES ARE HARD CODED
     jmp aWend
 aWE:
-    add cx, 0xd8 ;location of enter
+    add cx, 0xe4 ;location of enter
     jmp aWend
 aWF:
-    add cx, 0x17b ;location of folder
+    add cx, 0x187 ;location of folder
     jmp aWend
 aWH:
-    add cx, 0x11d ;location of xtoasc
+    add cx, 0x129 ;location of xtoasc
     jmp aWend
 aWN:
-    add cx, 0x126 ;location of filenum
+    add cx, 0x132 ;location of filenum
     jmp aWend
 aWS:
-    add cx, 0x155 ;location of setfolder
+    add cx, 0x161 ;location of setfolder
     jmp aWend
 aWW:
-    add cx, 0x05 ;location of new
+    add cx, 0x12 ;location of new
     jmp aWend
 aWX:
-    add cx, 0xf8 ;location of xtox
+    add cx, 0x104 ;location of xtox
     jmp aWend
 aWend:
     sub cx, di
@@ -2256,7 +2261,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 144 db 0
+    times 132 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
