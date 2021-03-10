@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.3.2", 0xd, 0xa
+    db "Pikobrain v1.3.3", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -496,20 +496,52 @@ writeram:
     jl writeram ;less due to edit
     mov di, cx
 typechar:
-    mov bx, 0h
+    mov bh, 0h
     ;get cursor position
     mov ah, 3h
     int 10h
-    push dx ;store
-    call new ;clear screen
-    mov bx, 0h
-    call nextread
-    mov bh, 0h
+    push dx
+    mov si, di
+    mov ah, 0xe
+typeloop:
+    mov al, byte [es:si]
+    cmp al, 0xd ;enter
+    je typelinestart
+    cmp al, 0xa
+    je typecont
+    int 10h ;output char
+typecont:
+    cmp al, 0x0 ;end of file
+    je typend
+    inc si
+    jmp typeloop
+typend:
     ;reset cursor
-    mov ah, 2h
+    call typeline ;clear two lines
+    call typeline
     pop dx
+    mov ah, 2h
     int 10h
+    jmp wgetchar
+typelinestart:
+    call typeline
+    jmp typecont 
+typeline:
+    mov ah, 3h
+    int 10h
+    mov bl, 0x50 ;width of screen
+    sub bl, dl ;number of spaces to fill up line with
+    mov ax, 0xe20 ;space
+tlloop:
+    int 10h
+    dec bl
+    cmp bl, 0h
+    jne tlloop
+    ret
 wgetchar:
+    ;get cursor location for dx
+    mov ah, 3h
+    int 10h
     ;get char to write
     mov ah, 0h
     int 16h
@@ -530,22 +562,20 @@ wgetchar:
     je whome
     cmp ah, 0x4f ;end
     je wend
+    cmp al, 0xd ;enter
+    je wenter
     ;write character typed
     mov ah, 0xe
     int 10h
     ;special chars
     cmp al, 0x60 ;` save
-    je save   
-    cmp al, 0xd ;enter
-    je wenter 
+    je save
     cmp al, 0x9 ;tab cancel
     je input
     cmp al, 0x5c ;\ special char
     je wspecial 
     cmp al, 0x7e ;~ char count
     je wchar
-    cmp byte [es:di], 0h ;end of file
-    je wwend 
     call wloopstart
     cmp si, 0x200
     jge save
@@ -564,12 +594,6 @@ wloop:
     inc di
 wloopend:
     ret
-wwend:
-    mov [es:di], al
-    inc di
-    cmp di, 0x200 ;end of file
-    jge save
-    jmp wgetchar
 wleft:
     dec di
     ;get cursor location
@@ -587,7 +611,7 @@ wleftnl:
     mov dl, 0x4f ;end of line
     int 10h
     cmp byte [es:di], 0xa ;newline
-    jne typechar
+    jne wgetchar
     dec di
     jmp wbnloop
 wright:
@@ -692,8 +716,8 @@ wenterspace:
     mov al, 0xd
     call wloopstart
     ;di already increased
-    mov ax, 0xe0a
-    int 10h
+    call typeline
+    mov al, 0xa
     call wloopstart
     jmp typechar
 whome:
@@ -708,22 +732,23 @@ wend:
     call wright2
     jmp wend
 wspecial:
-    ;get special char code
-    mov ax, 0xe08 ;backspace
-    int 10h
     ;get charcode
     call filenum
     mov al, cl
     call wloopstart
     mov ax, 0xe08 ;backspace
     int 10h ;for cursor
+    int 10h
+    int 10h
+    mov al, cl
+    int 10h
     jmp typechar
 wchar:
     push dx
     dec di ;else ~ will be saved
     mov al, [es:di]
     mov byte [es:di], 0h
-    call wloopstart
+    call wloopstart ;to get to end of file
     mov cx, si ;number of chars written in file
     call xtox
     mov ch, cl
@@ -2261,7 +2286,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 132 db 0
+    times 102 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
