@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.3.1
+PIKOBRAIN MANUAL v1.3.4
 Hanzlu (2019-2020)
 ---------------------
 
@@ -134,7 +134,7 @@ In order to access a file you enter a file number after a file manipulation comm
 Files in Pikobrain are automatically 512 bytes long. You can't change this, besides with your own imagination.
 
 w, write:
-Enter a file number. You can now write a file. You can use the enter button and the backspace button. The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once. Spaces before newline characters are automatically removed, as else backspace will work unexpectedly.
+Enter a file number. You can now write a file. You can use the enter button and the backspace button. The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once. Spaces before newline characters are automatically removed, as else backspace will work unexpectedly. If the page gets scrolled because a newline is created when the curser is on the bottom row things might work a bit unexpectedly.
 You can use the left and right arrow keys to move the cursor around the document. By pressing the home key the cursor moves to the start of the file. The end key moves
 the cursor to the end of the file.
 In order to copy text which you can paste later, you press the down arrow. Pikobrain remembers the character at which the cursor is. When you press the down arrow a

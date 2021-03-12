@@ -6,7 +6,7 @@
 
 jmp bootloader
 
-    db "Pikobrain v1.3.3", 0xd, 0xa
+    db "Pikobrain v1.3.4", 0xd, 0xa
     db "t time", 0xd, 0xa
     db "d date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -505,14 +505,14 @@ typechar:
     mov ah, 0xe
 typeloop:
     mov al, byte [es:si]
+    cmp al, 0x0 ;end of file
+    je typend
     cmp al, 0xd ;enter
     je typelinestart
     cmp al, 0xa
     je typecont
     int 10h ;output char
 typecont:
-    cmp al, 0x0 ;end of file
-    je typend
     inc si
     jmp typeloop
 typend:
@@ -527,19 +527,25 @@ typelinestart:
     call typeline
     jmp typecont 
 typeline:
-    mov ah, 3h
+    mov ah, 3h ;get cursor position
     int 10h
     mov bl, 0x50 ;width of screen
+    cmp dh, 0x18 ;if on lowest row, prevent newline by bl-1
+    jne typelcon
+    dec bl
+typelcon:
     sub bl, dl ;number of spaces to fill up line with
     mov ax, 0xe20 ;space
 tlloop:
-    int 10h
-    dec bl
     cmp bl, 0h
-    jne tlloop
+    je tlloopend
+    int 10h ;this must be below the cmp
+    dec bl
+    jmp tlloop
+tlloopend:
     ret
 wgetchar:
-    ;get cursor location for dx
+    ;get cursor location for dx, used by some keys
     mov ah, 3h
     int 10h
     ;get char to write
@@ -596,9 +602,6 @@ wloopend:
     ret
 wleft:
     dec di
-    ;get cursor location
-    mov ah, 3h
-    int 10h
     cmp dl, 0h ;beginning of line
     je wleftnl
     mov ax, 0xe08 ;backspace
@@ -606,7 +609,7 @@ wleft:
     jmp wgetchar
 wleftnl:
     ;move cursor
-    dec ah ;2h
+    mov ah, 2h
     dec dh
     mov dl, 0x4f ;end of line
     int 10h
@@ -643,9 +646,6 @@ wrightnl:
     inc di
     ret
 backspace:
-    ;get cursor position
-    mov ah, 3h
-    int 10h
     ;output backspace
     mov ax, 0xe08
     int 10h
@@ -719,6 +719,12 @@ wenterspace:
     call typeline
     mov al, 0xa
     call wloopstart
+    cmp dh, 0x18 ;bottom row
+    jne typechar
+    mov ax, 0xe0d
+    int 10h
+    mov al, 0xa
+    int 10h
     jmp typechar
 whome:
     mov ah, 2h ;move cursor to top left
@@ -736,15 +742,13 @@ wspecial:
     call filenum
     mov al, cl
     call wloopstart
-    mov ax, 0xe08 ;backspace
-    int 10h ;for cursor
+    mov ah, 2h
     int 10h
-    int 10h
+    mov ah, 0xe
     mov al, cl
     int 10h
     jmp typechar
 wchar:
-    push dx
     dec di ;else ~ will be saved
     mov al, [es:di]
     mov byte [es:di], 0h
@@ -756,7 +760,6 @@ wchar:
     ;char press
     mov ah, 0h
     int 16h
-    pop dx
     mov ah, 2h ;reset cursor
     int 10h
     jmp typechar
@@ -2286,7 +2289,7 @@ program:
     int 13h ;read
     jmp 0x1000:0x2000
     
-    times 102 db 0
+    times 90 db 0
     db 0h ;upper 2 bits cl -- track
     dw 0h ;0x1000:0x11ff -- hd head/track
 
