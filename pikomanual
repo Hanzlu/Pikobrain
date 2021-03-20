@@ -279,7 +279,6 @@ character this means the program as been assembled up until that point where the
 If you do not get a four digit number before the e character it means it is a label error. Make sure to spell labels right.
 If you get the four digit number and two e characters it means you have both a general error and a label error.
 
-
 p, program:
 The 'p' command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will jump to the user's program. Therefore it is necessary to include the E mneumonics in the code, so that control is given back to the operating system.
 
@@ -297,6 +296,13 @@ These buffers should not be used by users, as it can make the OS (or user progra
 ---------------
 By altering the value at location 1000:0222 you can change the colors the screen has using BIOS color attributes.
 (This (and other memory values in this file) is not always up to date. Use v command with 020E as arguments for color altering)
+
+**INSTALLING OWN FILES
+----------------------
+In order to move files from another device to Pikobrain you'll have to use the install.asm program.
+The program requires the knowledge of the 13h BIOS disk read interrupt. Guide is in the install.asm file.
+It works by booting form an USB and its bootloader will write your files to Pikobrain. It's a bootloader program.
+Currently there is no known way of moving files out of Pikobrain (in as usable way), as Pikobrain doesn't use a normal filesystem.
 
 TROUBLES
 --------
