@@ -3,7 +3,7 @@ An Operating System
 
 16-bit operating system written in assembly.
 
-Only 4.5kB of binary code.
+Only 5kB of binary code.
 
 Can edit files, code, calculate and convert hexadecimal/decimal etc.
 
