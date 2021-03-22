@@ -7,7 +7,7 @@
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.3.5", 0xd, 0xa
+    db "Pikobrain v1.3.6", 0xd, 0xa
     db "time", 0xd, 0xa
     db "date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -82,7 +82,7 @@ bootloader:
     mov es, ax
     mov bx, 0x0
     ;read
-    mov ax, 0x209 ;files to read 10x
+    mov ax, 0x20a ;files to read 10x
     mov cx, 1h
     mov dh, 0h ;dl set at boot
     int 13h
@@ -106,7 +106,7 @@ boot81:
 install:
     ;write files to hard drive
     mov bx, 0h
-    mov ax, 0x309 ;10x files to write
+    mov ax, 0x30a ;10x files to write
     mov cx, 1h
     int 13h
     mov dl, 0h ;mark that installing not booting from hard drive
@@ -135,7 +135,7 @@ success:
 ;**********    
 
     ;set up copy buffer
-    mov ax, 0x1120
+    mov ax, 0x1140
     mov es, ax
     mov bx, 0h
     mov byte [es:bx], 0h
@@ -343,7 +343,7 @@ setfolder:
     and cl, 0x3f ;clear upper bits
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x11fd ;OS size depending
+    mov si, 0x13fd ;OS size depending
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al ;set cl
@@ -362,9 +362,9 @@ folder:
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x11ff ;!OS size depending
+    mov si, 0x13ff ;!OS size depending
     call filenum
-    cmp cl, 0h ;double press enter to select current folder-> value will be negative (hacking?)
+    cmp cl, 0h ;double press enter to select current folder-> value will be negative
     jl fsame
     cmp cl, 0x44 ;double semi-colon to only enter last two digits
     je flast
@@ -386,16 +386,14 @@ folder:
     ret
 fhome:
     ;set to 000000
-    mov byte [fs:si], 0h
-    inc si
-    mov byte [fs:si], 0h
-    inc si
+    dec si
+    mov word [fs:si], 0h
+    dec si
     mov byte [fs:si], 0h
     ret
 flast:
     ;only change last two digits
     call filenum
-    add si, 2h
     mov [fs:si], cl
     ret
 fsame:
@@ -410,7 +408,7 @@ random:
     mov ah, 0h
     int 1ah
     ;setup buffer
-    mov ax, 0x1160
+    mov ax, 0x1180
     mov fs, ax
     mov si, 0h
     mov ax, [fs:si]
@@ -822,7 +820,7 @@ wchar:
 wcopy:
     ;copy and cut
     mov dl, al ;if 7C cut (ascii value for |)
-    mov ax, 0x1120 ;copy buffer
+    mov ax, 0x1140 ;copy buffer
     mov gs, ax
     mov si, 0h
     cmp byte [gs:si], 0h ;store copy into copy-buffer
@@ -1169,7 +1167,7 @@ info:
     ;ouput folder number hex
     mov ax, 0x1000
     mov fs, ax
-    mov si, 0x11fd
+    mov si, 0x13fd
     mov ch, [fs:si]
     call xtox
     inc si
@@ -1283,7 +1281,7 @@ zend:
 
 search:
     ;search for string in files in folder
-    mov ax, 0x1140 ;buffer location
+    mov ax, 0x1160 ;buffer location
     mov gs, ax
     mov di, 0x0 ;gs:di search word
 sword:
@@ -1642,10 +1640,14 @@ aZ:
 aZR:
     mov dx, 0xc0e8
     mov ch, 1h
+    cmp al, 0x58 ;X
+    je aZQX
     jmp aregstart2
 aZL:
     mov dx, 0xc0e0
     mov ch, 1h
+    cmp al, 0x58 ;X
+    je aZQX
     jmp aregstart2
 aQ:
     call aloop
@@ -1657,10 +1659,18 @@ aQ:
 aQR:
     mov dx, 0xc0c8
     mov ch, 1h
+    cmp al, 0x58 ;X
+    je aZQX
     jmp aregstart2
 aQL:
     mov dx, 0xc0c0
     mov ch, 1h
+    cmp al, 0x58 ;X
+    je aZQX
+    jmp aregstart2
+aZQX:
+    ;Z and Q will take 8 bit argument even if 16 bit register
+    dec ch ;will end up as 1h = 1 byte
     jmp aregstart2
 aB:
     ;AND
@@ -2070,12 +2080,12 @@ aJ:
     je aJNE
     cmp al, 0x47 ;Greater
     je aJG
-    cmp al, 0x41 ;Above jge
-    je aJGE
+    cmp al, 0x41 ;Above
+    je aJA
     cmp al, 0x4c ;Less
     je aJL
-    cmp al, 0x42 ;Below jle
-    je aJLE
+    cmp al, 0x42 ;Below
+    je aJB
     cmp al, 0x4f ;Overflow
     je aJO
     cmp al, 0x53 ;Signed
@@ -2092,14 +2102,14 @@ aJNE:
 aJG:
     mov byte [gs:di], 0x8f
     jmp aJMP
-aJGE:
-    mov byte [gs:di], 0x8d
+aJA:
+    mov byte [gs:di], 0x87
     jmp aJMP
 aJL:
     mov byte [gs:di], 0x8c
     jmp aJMP
-aJLE:
-    mov byte [gs:di], 0x8e
+aJB:
+    mov byte [gs:di], 0x82
     jmp aJMP
 aJO:
     mov byte [gs:di], 0x80
@@ -2362,9 +2372,9 @@ program:
     jmp 0x1000:0x2000 ;location of program machine code
 
     ;fill space to make divisible by 512
-    times 4605-($-$$) db 0h
+    times 5117-($-$$) db 0h
     db 0h ;upper 2 bits cl -- track
-    dw 0h ;0x1000:0x11ff -- hd head/track
+    dw 0h ;0x1000:0x13ff -- hd head/track
 
 ;commands to assemble and make into flp file linux + NASM
 ;nasm -f bin -o myfirst.bin myfirst.asm

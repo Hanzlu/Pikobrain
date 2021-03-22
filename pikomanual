@@ -1,11 +1,11 @@
-PIKOBRAIN MANUAL v1.3.5
+PIKOBRAIN MANUAL v1.3.6
 Hanzlu (2019-2021)
 ---------------------
 
 INTRODUCTION
 ------------
 
-Pikobrain is a very small operating system of only 4kB, which still provides the user with all the basic commands to edit files, code, and so on. The operating system
+Pikobrain is a very small operating system of only 5kB, which still provides the user with all the basic commands to edit files, code, and so on. The operating system
 is completely written in 16-bit assembly language (NASM). Pikobrain uses the hexadecimal number system. The keyboard is automatically US character set.
 Lines starting with ** are technical details.
 
@@ -103,7 +103,7 @@ FOLDERS
 You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access a maximum
 of 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
-You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-09 are reserved for the operating system, do not edit them if you do 
+You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0A are reserved for the operating system, do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
 When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the enter button you will select the current folder. This will move 
 the cursor to the begining of the line and display a star '*'. By pressing two times on the h letter key you select the 'home' folder (000000).
@@ -196,10 +196,10 @@ O, or
 X, xor
 C, compare
 
-Here is a list of 2 character mneumonics taking two arguments; a 8-bit register and a number (byte) and the mneumonic ends with either R (right) or L (left):
+Here is a list of 2 character mneumonics taking two arguments; a register and a number (byte) and the mneumonic ends with either R (right) or L (left):
 Z, (shift), ZR = shr, ZL = shl
 Q, (rotate), QR = ror, QL = rol
-Notice that these mneumonics cannot use 16-bit registers.
+Notice that a 16-bit register will only take a 8-bit value as argument.
 
 Here is a list of 2 character mneumonics taking only a number (byte) as argument and where the mneumonic ends with either I (in) or O (out):
 G, GI = in, GO = out
@@ -226,9 +226,9 @@ The following conditional jumps exist:
 JE, jump equal
 JN, jump not equal (jne)
 JG, jump greater
-JA, jump above or equal (jge)
+JA, jump above
 JL, jump less
-JB, jump below or equal (jle)
+JB, jump below
 JO, jump overflow
 JS, jump signed
 JP, jump parity
@@ -246,7 +246,7 @@ MAF, mov al, [fs:si]
 MGG, mov gs, ax
 MGA, mov [gs:di], al
 MAG, mov al, [gs:di]
-**User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program. Also the text editors copy buffer starts at 0x2000:0x0.
+**User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program. Check the segmentation section in the bottom of this file.
 
 Macros:
 To simplify some of the programming, you can access some of the functions Pikobrain call by using the following mneumonics. The list describes the functions and lists
@@ -285,10 +285,10 @@ The 'p' command allows you to run binary files such as assembled code. Enter the
 **OS MEMORY USAGE
 -----------------
 Pikobrain uses some parts of the RAM for its own needs. This is a list of segments it uses and their use:
-0x1000:0x0 - 0x1000:0x11ff, OS machine code
-0x1120:0x0 - 0x1120:0x01ff, Copy buffer
-0x1140:0x0 - 0x1140:0x01ff, Search command buffer
-0x1160:0x0 - 0x1160:0x0001, Random number generator
+0x1000:0x0 - 0x1000:0x13ff, OS machine code
+0x1120:0x0 - 0x1140:0x01ff, Copy buffer
+0x1140:0x0 - 0x1160:0x01ff, Search command buffer
+0x1160:0x0 - 0x1180:0x0001, Random number generator
 0x1200:0x0 - 0x1200:0x01ff, File read buffer (can span further if user machine code is run using p command)
 These buffers should not be used by users, as it can make the OS (or user programs) run in unexpected ways.
 
