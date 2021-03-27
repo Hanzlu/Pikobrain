@@ -13,4 +13,6 @@ Tested on an HP ProLiant ML110 G5 (1GB RAM, 80GB HDD, Intel Core 2 Duo, from 200
 
 Should work on i386 architecture and newer. 1MB RAM recommended.
 
-Read the pikomanual file for installation guidelines.
+Read the pikomanual file for installation guidelines, and detailed command guiding.
+
+When inside the OS, type 'r01' to get "help file".
