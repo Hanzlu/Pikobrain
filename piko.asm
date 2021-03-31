@@ -7,7 +7,7 @@
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.3.6", 0xd, 0xa
+    db "Pikobrain v1.3.7", 0xd, 0xa
     db "time", 0xd, 0xa
     db "date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -31,11 +31,7 @@ jmp bootloader
     db "assembly [fi][2h][fi]", 0xd, 0xa
     db "program [fi][2h]"
 
-    ;variables
-    bootdrive db 0h
-    heads db 0h
-    tracks dw 0h
-    sectors db 0h  
+    bootdrive db 0h ;store boot drive
 
 bootloader:
     ;set up registers
@@ -45,21 +41,7 @@ bootloader:
     mov ds, ax      ;data segment
 	mov sp, 0x1000
 
-    ;store dl=boot drive
-    mov [bootdrive], dl
-    ;store drive information into variables
-    mov ah, 8h
-    int 13h
-    mov [heads], dh
-    mov dh, cl
-    and cl, 0x3f ;clear upper two bits
-    mov [sectors], cl
-    shr dh, 6h
-    mov bh, dh
-    mov bl, ch
-    mov [tracks], bx
-    ;reset dl
-    mov dl, [bootdrive]
+    mov [bootdrive], dl ;store dl=boot drive
 
     ;print bootdrive
     ;convert dl into ascii
@@ -147,6 +129,7 @@ callnew:
     call new
     jmp input
 new:
+    pusha ;store for assembly macros
     ;set graphics mode
     mov ax, 3h
     int 10h
@@ -156,6 +139,7 @@ new:
     mov cx, 0h
     mov dx, 0x184f
     int 10h
+    popa
     ret
 
 input:
@@ -364,7 +348,7 @@ folder:
     mov fs, ax
     mov si, 0x13ff ;!OS size depending
     call filenum
-    cmp cl, 0h ;double press enter to select current folder-> value will be negative
+    cmp cl, 0h ;double press tab to select current folder-> value will be negative
     jl fsame
     cmp cl, 0x44 ;double semi-colon to only enter last two digits
     je flast
@@ -395,14 +379,12 @@ flast:
     ;only change last two digits
     call filenum
     mov [fs:si], cl
-    ret
-fsame:
-    ;current folder, used for copy
-    mov ax, 0xe2a ;*
-    int 10h
+fsame: ;do nothing, use current folder
     ret
 
 random:
+    push cx ;store for assembly macros
+    push dx
     ;random number generator
     ;get tick
     mov ah, 0h
@@ -422,6 +404,8 @@ rcon:
     sub al, ah
 rend:
     mov [fs:si], ax ;save
+    pop dx
+    pop cx
     ret
  
 ;*********
@@ -507,9 +491,7 @@ callread:
 read:
     ;read file as ASCII chars
     call readfile
-    push cx
     call new ;due to edit and wcut
-    pop cx ;store
     mov bx, 0h
 nextread:
     mov al, [es:bx]
@@ -531,7 +513,7 @@ write:
     ;get file number
     call filenum
     push cx ;store for save
-    mov cx, 0h ;due to edit after writeram, how many chars already
+    mov cx, 0h ;due to edit after writeram, how many chars already in file
     ;set cursor position
     call new
     ;clear ram
@@ -618,6 +600,8 @@ wgetchar:
     je wend
     cmp al, 0xd ;enter
     je wenter
+    cmp al, 0x7e ;~ char count
+    je wchar
     ;output character typed
     mov ah, 0xe
     int 10h
@@ -628,8 +612,6 @@ wgetchar:
     je input
     cmp al, 0x5c ;\ special char
     je wspecial 
-    cmp al, 0x7e ;~ char count
-    je wchar
     call wloopstart
     cmp si, 0x200 ;file size
     jge save
@@ -802,12 +784,8 @@ wspecial:
     int 10h
     jmp typechar
 wchar:
-    ;display number of written characters
-    dec di ;else ~ will be saved
-    mov al, [es:di]      ;:)rewrite current char..
-    mov byte [es:di], 0h ;:)when calling wloopstart
-    call wloopstart ;to get to end of file=set si
-    mov cx, si ;number of chars written in file
+    ;display number of the char the cursor is on
+    mov cx, di ;di stores the value
     call xtox
     mov ch, cl
     call xtox
@@ -869,11 +847,9 @@ wcsavend:
     mov di, bx
     mov ah, 3h
     int 10h ;get cursor
-    push dx
     call new
     mov bx, 0h
     call nextread ;rewrite page
-    pop dx
     mov ah, 2h ;reset cursor
     int 10h
 wsendc:
@@ -903,7 +879,6 @@ save:
     call setfolder 
     mov ax, 0x301
     int 13h
-saved:
     mov ax, 0xe60 ;`
     int 10h
     jmp input
@@ -941,7 +916,7 @@ copy:
     pop ax ;same number
     inc ah
     int 13h
-    jmp saved   
+    jmp input   
 
 kalc:
     call kgetint
@@ -1356,24 +1331,25 @@ sfile:
 
 os:
     ;display bootdrive
-    mov ch, [bootdrive]
+    mov dl, [bootdrive] ;for osfolder
+    mov ch, dl
     call xtox
     call enter
 osfolder:
     ;display largest folder
-    ;get upper bits track
-    mov dx, [tracks]
-    mov ch, dh
+    mov ah, 8h ;get drive info
+    int 13h
+    push cx
+    shr cl, 6h ;upper bits of track
+    mov ch, cl
     call xtox
-    ;rest for folder
-    mov ch, [heads]
+    mov ch, dh ;sides
     call xtox
-    mov ch, dl
+    pop cx ;cylinders
     call xtox
     call enter
-    ;display max file num
-    ;get sectors
-    mov ch, [sectors]
+    and cl, 0x3f ;clear upper bits
+    mov ch, cl ;sectors
     call xtox
     jmp input
 
@@ -1382,7 +1358,7 @@ assembly:
     ;buffer
     mov ax, 0x1200 ;source file
     mov es, ax
-    mov ax, 0x2200
+    mov ax, 0x1a00
     mov gs, ax ;gs:di writes machine opcodes
     mov bx, 0h
     mov di, 0h
@@ -2124,7 +2100,7 @@ aJM:
     mov byte [gs:di], 0xe9 ;jmp
 aJMP:
     call askip
-    mov ax, 0x3200 ;fs:si stores jmp statements
+    mov ax, 0x2000 ;fs:si stores jmp statements
     mov fs, ax
     inc di ;where machine code will be written
     mov ax, di
@@ -2148,10 +2124,10 @@ aJF:
     mov byte [gs:di], 0xea
     jmp a4b
 aLabel:
-    mov ax, 0x4200 ;fs:si stores labels
+    mov ax, 0x2800 ;fs:si stores labels
     mov fs, ax
     mov dx, si ;store for later
-    pop si ;the si for 0x4200 is stored on stack
+    pop si ;the si for 0x2800 is stored on stack
     mov cx, di ;store for later (dx=si, cx=di)
     inc bx ;get passed the 1st "." in label name
 aLabell:
@@ -2269,16 +2245,16 @@ aerror:
     ;will still save
 asave:
     ;add jumps to machine code
-    mov ax, 0x3200
+    mov ax, 0x2000
     mov fs, ax
     mov word [fs:si], 0h ;end of list
-    mov ax, 0x4200
+    mov ax, 0x2800
     mov fs, ax
     pop si
     mov byte [fs:si], 0h ;end of list
     mov es, ax ;label list (es:bx)
     mov bx, 0h
-    mov ax, 0x3200 ;jmp list (fs:si)
+    mov ax, 0x2000 ;jmp list (fs:si)
     mov fs, ax
     mov si, 0h
 asaveloop:
@@ -2332,7 +2308,7 @@ awrite:
     mov ax, 0xe61 ;Assembled
     int 10h
     ;buffer of machine code to be saved
-    mov ax, 0x2200
+    mov ax, 0x1a00
     mov es, ax
     mov bx, 0h
     ;destination file
@@ -2379,3 +2355,5 @@ program:
 ;commands to assemble and make into flp file linux + NASM
 ;nasm -f bin -o myfirst.bin myfirst.asm
 ;dd status=noxfer conv=notrunc if=myfirst.bin of=myfirst.flp
+;to place onto USB:
+;sudo dd if=piko.bin of=/dev/sdb

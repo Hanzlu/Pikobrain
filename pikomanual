@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.3.6
+PIKOBRAIN MANUAL v1.3.7
 Hanzlu (2019-2021)
 ---------------------
 
@@ -19,17 +19,18 @@ Development begun in late 2019, and has continued since then in unregular patter
 INSTALLATION
 ------------
 
-Pikobrain should have access to 1MB of RAM. Hard disk space should be between at least a few kB up to about 8GB (it cannot access more). Keyboard and screen are also 
+Pikobrain should have access to 200kb of RAM. Hard disk space should be between at least a few kB up to about 8GB (it cannot access more). Keyboard and screen are also 
 essential, as well as a USB/floppy port for booting on real hardware. The CPU should be i386 or newer (fs and gs registers are used), and allow for 20-bit segmentation.
 The machine also needs to have BIOS. I expect that Pikobrain will run on most ordinary PCs from about 1990-2015, and possibly in some cases beyond.
 
 In VirtualBox the piko.flp file can be used to boot the OS from a virtual floppy disk.
+It is possible to run Pikobrain on QEMU, but some things work weirdly. It also requires a change in the code in order to work, so support and guiding is not provided.
 On real hardware USB drives has been tested and worked. On linux you can use the ' sudo dd if=piko.bin of=/dev/sdb ' command to write the piko.bin file to a USB drive.
 However, the sdb part might be different for other people (check the ' dmesg ' command). I always format the USB stick before using the dd command, I am not sure if it
 is actually necessary.
 
 Boot from the USB. If the boot is sucessfull you shall see a two digit number followed by an S ("Success"). This means the OS has been installed successfully on your hard drive. 
-Now remove the USB and boot from the hard drive. If the boot is successfull you should see a blinking cursor. You are now in Pikobrain. Try the t command for example.
+Now remove the USB and boot from the hard drive. If the boot is successfull you should see a yellow blinking cursor. You are now in Pikobrain. Try the t command for example.
 
 COMMANDS
 --------
@@ -105,8 +106,8 @@ The first 2 digit hexadecimal number of the current folder can be a maximum of 0
 of 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
 You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0A are reserved for the operating system, do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
-When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the enter button you will select the current folder. This will move 
-the cursor to the begining of the line and display a star '*'. By pressing two times on the h letter key you select the 'home' folder (000000).
+When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the tab button you will select the current folder. This will move 
+output two circles. By pressing two times on the h letter key you select the 'home' folder (000000).
 By pressing semi-colon twice you'll be able to insert a two digit number to alter only the last two digits of the file number.
 When you use these shortcuts you must only do two (or four) key presses rather than 6. It is also possible to press backspace to cancel writing the folder number.
 
@@ -142,11 +143,11 @@ second time Pikobrain will save all the text between the two key presses. **Now 
 When you press the down arrow for the second time you can type the '|' character instead, to cut the text rather than just copying it. This will only work if the cursor
 was closer to the top left of the screen (start of file) when you typed '|'.
 To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
-between files.
+between files. **...As the content is stored in the buffer, however the buffer is cleared when using the p command.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
 Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input'.
-If you hold shift and the ` button (left of 1) you'll be displayed with a ~ character and a four digit hexadecimal number. This number shows you the number of characters
-the file currently holds out of the maximum 512 bytes (0200 hex). Press any key and you can continue writing.
+If you hold shift and the ` button (left of 1) you'll be displayed with a four digit hexadecimal number. This number shows you the number of the character the cursor
+is on out of the maximum 0x200. Press any key and you can continue writing.
 In order to save a file you press the button to the left of the 1 key. This should display ``, which means the file has been saved. In order to cancel writing you
 press the tab key. This should display a small circle.
 If you write 512 characters you reach the file size limit in Pikobrain. The file will be automatically saved and a ` character will be displayed. If you save a file
@@ -167,7 +168,7 @@ Same as memory, but asks for a second argument, which is a two digit hexadecimal
 
 c, copy:
 Enter a file number for the source file. Enter the number of files to read as a two digit hexadecimal number. A 'w' character should be displayed.
-Enter the destination folder's number (6 digit hexadecimal number or a shortcut). Enter the destination file's number. A ` character shall be displayed and the file has been copied. 
+Enter the destination folder's number (6 digit hexadecimal number or a shortcut). Enter the destination file's number.
 
 CODING
 ------
@@ -256,9 +257,9 @@ WE, prints a newline. [ax]
 WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x11fd-0x11ff. [ax, cl, fs, si]
 WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
 WN, let's the user input a two digit hex number which is stored in cl. The user cannot press backspace as this will make the program end and jump back to the input. [ax, cl]
-WR, returns a random number into al. The other used registers also receive "random" numbers, but are "useless" for looping random numbers. [ax, cx, dx, fs, si]
+WR, returns a random number into al. The other used registers also receive "random" numbers, but are "useless" for looping random numbers. [ax, fs, si]
 WS, is used to set dh, ch, and cl before a file operation (int 13h). It takes the values inserted when using WF, and are all set to 0 at bootup. [ax, cx, dh, fs, si]
-WW, works like the n command in the input, clears the screen. [ax, bh, cx, dx]
+WW, works like the n command in the input, clears the screen. [nothing]
 WX, outputs the value in ch as ASCII. If ch is 34 hex for example, it will be printed as "34". [ax, ch]
 
 Other commands:
@@ -289,7 +290,9 @@ Pikobrain uses some parts of the RAM for its own needs. This is a list of segmen
 0x1120:0x0 - 0x1140:0x01ff, Copy buffer
 0x1140:0x0 - 0x1160:0x01ff, Search command buffer
 0x1160:0x0 - 0x1180:0x0001, Random number generator
-0x1200:0x0 - 0x1200:0x01ff, File read buffer (can span further if user machine code is run using p command)
+0x1200:0x0 - 0x1200:0x01ff, Normal file read buffer
+0x1200:0x0 - 0x3000:0x0000, Assembler buffer (this buffer may be altered except for the program buffer)
+0x1200:0x0 - 0x1800:0x0000, Program buffer (maximum size, depends on size of user program)
 These buffers should not be used by users, as it can make the OS (or user programs) run in unexpected ways.
 
 **CUSTOMIZATION
