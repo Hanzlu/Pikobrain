@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.3.7
+PIKOBRAIN MANUAL v1.3.8
 Hanzlu (2019-2021)
 ---------------------
 
@@ -143,7 +143,7 @@ second time Pikobrain will save all the text between the two key presses. **Now 
 When you press the down arrow for the second time you can type the '|' character instead, to cut the text rather than just copying it. This will only work if the cursor
 was closer to the top left of the screen (start of file) when you typed '|'.
 To paste text you have copied you press the up arrow. This will paste the characters between your first and second down-arrow-presses. It's possible to copy-paste
-between files. **...As the content is stored in the buffer, however the buffer is cleared when using the p command.
+between files.
 You can write special characters (ASCII 00-FF) in Pikobrain. Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
 Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input'.
 If you hold shift and the ` button (left of 1) you'll be displayed with a four digit hexadecimal number. This number shows you the number of the character the cursor
@@ -275,10 +275,9 @@ Then you should see a 'a' character for assembled on the screen. Otherwise you m
 where the binary code will be placed. If your program is large, the machine code might span over several files.
 
 Errors
-If you get an error you will se a four digit number telling you at what character in the assembly code the error is, followed with an e. If you also see an 'a' 
-character this means the program as been assembled up until that point where the error is found. This allows you to see where in the machine code the error is.
-If you do not get a four digit number before the e character it means it is a label error. Make sure to spell labels right.
-If you get the four digit number and two e characters it means you have both a general error and a label error.
+If you get an error you will se a four digit number telling you at what character in the assembly code the error is, followed with an error letter.
+If you also see an 'a' character this means the program as been assembled up until that point where the error is found, and you should enter a destination file.
+There are two error letters: e (general error) and L (label error)
 
 p, program:
 The 'p' command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will jump to the user's program. Therefore it is necessary to include the E mneumonics in the code, so that control is given back to the operating system.
