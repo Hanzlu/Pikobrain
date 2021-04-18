@@ -219,9 +219,8 @@ c, copy:
 Enter a file number for the source file. Enter the number of files to read as a two digit hexadecimal number. A 'w' character should be displayed.
 Enter the destination folder's number (6 digit hexadecimal number or a shortcut). Enter the destination file's number.
 
-JUMP
-
-The j (jump) command can only be used when booting from a USB (or CD?). This command allows you to copy files between the USB and hard drive. First enter if the USB or hard drive will serve as source. Pressing 0 specifies the hard drive, and pressing 1 would be the USB. Then enter the rest of the arguments the same way as
+j, jump:
+The j (jump) command can only be used when booting from a USB (or CD?). This command allows you to copy files between the USB and hard drive. First enter if the USB or hard drive will serve as source. Pressing 0 specifies the USB, and pressing 1 would be the hard drive. Then enter the rest of the arguments the same way as
 the c command works: file number, number of files, (a 'w' will be displayed), a folder number (shortcuts possible), and finally the destination file number.
 
 CODING
