@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.4.2
+PIKOBRAIN MANUAL v1.4.3
 Hanzlu (2019-2021)
 ---------------------
 
@@ -51,14 +51,13 @@ osdev.org wiki forums.
 INSTALLATION
 ------------
 
-Pikobrain should have access to 200kb of RAM. Hard disk space should be between at least a few kB up to about 8GB (it cannot access more). Keyboard and screen are also 
+Pikobrain should have access to 200kB of RAM. Hard disk space should be between at least a few kB up to about 8GB (it cannot access more). Keyboard and screen are also 
 essential, as well as a USB/floppy port for booting on real hardware. The CPU should be i386 or newer (fs and gs registers are used), and allow for 20-bit segmentation.
 The machine also needs to have BIOS. I expect that Pikobrain will run on most ordinary PCs from about 1990-2015, and possibly in some cases beyond.
 
 In VirtualBox the piko.flp file can be used to boot the OS from a virtual floppy disk.
 On real hardware USB drives has been tested and worked. On Linux you can use the ' sudo dd if=piko.bin of=/dev/sdb ' command to write the piko.bin file to a USB drive.
-However, the sdb part might be different for other people (check the ' dmesg ' command). I always format the USB stick before using the dd command, I am not sure if it
-is actually necessary. It appears to be possible to boot from CDs, but this is not directly supported.
+However, the sdb part might be different for other people (check the ' dmesg ' command). It appears to be possible to boot from CDs, but this is not directly supported.
 
 Boot from the USB. If the boot is sucessfull the screen should change color. Pikobrain is now installed on your hard drive. It is possible to use Pikobrain
 commands at this stage, but all the commands will opperate on the USB stick rather than the hard drive. This is also the only time you can use the j (jump) command as
@@ -237,8 +236,7 @@ CODING
 **The OS often uses a buffer starting at 0x1200:0x0 (20 bit segmentation), including when loading machine code into RAM with the r command. Thus, you should not use
 that buffer in your own programs as you will alter the code your program is running from.
 
-Pikobrain has a limited assembler. The assembly language is a custom version of assembly language called Pikoasm. The code is written in consecutive files within single folders.
-The code is written in upper case with one exception (e).
+Pikobrain has a limited assembler. The assembly language is a custom version of assembly language called Pikoasm. The code is written in consecutive files within single folders. The assembler stops when it reaches a null character (ASCII 0). The code is written in upper case.
 Mneumonics are 1-3 characters wide. Mneumonics which can take two registers as arguments and jump mneumonics are typically 2 chracters wide. 
 If a mneumonic can either use a register or immediate value as source, this must be indicated in the mneumonic. For example if you want to move bx into ax, you must 
 specify that the source is a register by using the MR (move register) mneumonic. On the other hand, if the source is a value (and all values are hexadecimal) such as 10 
@@ -318,10 +316,11 @@ WR, returns a random number into al. The other used registers also receive "rand
 WS, is used to set dh, ch, and cl before a file operation (int 13h). It takes the values inserted when using WF, and are all set to 0 at bootup. [ax, cx, dh, fs, si]
 WW, works like the n command in the input, clears the screen. [nothing]
 WX, outputs the value in ch as ASCII. If ch is 34 hex for example, it will be printed as "34". [ax, ch]
+When a new version of Pikobrain is realeased it can cause macros to not work, making user programs incompatible with the new version. For this reason it may be
+necessary to re-assemble programs after having updated Pikobrain to a new version.
 
 Other commands:
 E, End (this will ask the user for a key press and return the control of the computer back to the OS) (this is necessary to end a program, and you can have multiple)
-e, end (this marks the end of the source code, the command is necessary for the ending the source code)
 ;, comment. Allows you to type anything until the next newline character without affecting the assembler process. Notice that the comment end with a newline.
 ", string. Prints any text until the next " character. Basically a print function. You must be in a text video mode in order for it to work. Alters the value of AX.
 
@@ -358,6 +357,8 @@ Pikobrain uses some parts of the RAM for its own needs. This is a list of segmen
 0x1200:0x0 - 0x1a00:0x0000, Normal file read buffer (maximum size, depends on size of bulk or program)
 0x1200:0x0 - 0x3000:0x0000, Assembler buffer (this buffer may be altered except for the file read buffer above)
 These buffers should not be used by users, as it can make the OS (or user programs) run in unexpected ways.
+The Text Editor is about 1kB large, whereas the assembler takes up about 1.8kB. In other words they take up more than half the size of Pikobrain together.
+The effective (excluding the list of commands) part of the bootloader is about 85 bytes large.
 
 **CUSTOMIZATION
 ---------------

@@ -1,13 +1,13 @@
 	BITS 16
 
-;**********
+;***********
 ;BOOTLOADER
-;**********
+;***********
 
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.4.2", 0xd, 0xa
+    db "Pikobrain v1.4.3", 0xd, 0xa
     db "time", 0xd, 0xa
     db "date", 0xd, 0xa
     db "enter", 0xd, 0xa
@@ -79,6 +79,7 @@ jmppb:
     db 1h ;install boolean
     dw 0xaa55
 
+
 ;**********
 ;PIKOBRAIN
 ;**********
@@ -110,98 +111,10 @@ new:
     popa
     ret
 
-input:
-    ;get commands
-    mov ah, 0h
-    int 16h
-    mov bh, 0h ;graphics reason
 
-    cmp al, 0xd  ;enter
-    je callenter  
-    cmp al, 0x62 ;b
-    je back
-    cmp al, 0x64 ;d
-    je date
-    cmp al, 0x74 ;t
-    je time
-    cmp al, 0x6e ;n
-    je callnew
-    cmp al, 0x6b ;k
-    je kalc 
-    cmp al, 0x68 ;h
-    je hex
-    cmp al, 0x78 ;x
-    je xdec
-    cmp al, 0x2e ;.
-    je real
-    cmp al, 0x6f ;o
-    je os
-    cmp al, 0x6d ;m
-    je memory
-    cmp al, 0x76 ;v
-    je visible
-    cmp al, 0x77 ;w
-    je write
-    cmp al, 0x65 ;e
-    je edit
-    cmp al, 0x63 ;c
-    je copystart  
-    cmp al, 0x66 ;f
-    je callfolder
-    cmp al, 0x69 ;i
-    je info
-    cmp al, 0x7a ;z
-    je zero
-    cmp al, 0x73 ;s
-    je search
-    cmp al, 0x6a ;j
-    je jump
-    cmp al, 0x61 ;a
-    je assembly
-    cmp al, 0x72 ;r
-    je run
-
-    ;else arrows
-arrow:
-    mov al, ah
-    ;get cursor location
-    mov ah, 3h
-    int 10h
-    cmp al, 0x48 ;up
-    je arrowup
-    cmp al, 0x50 ;down
-    je arrowdown
-    cmp al, 0x4b ;left
-    je arrowleft
-    cmp al, 0x4d ;right
-    je arrowright
-    jmp input
-arrowup:
-    dec dh
-    jmp arrowend
-arrowdown:
-    inc dh
-    jmp arrowend
-arrowleft:
-    dec dl
-    jmp arrowend
-arrowright:
-    inc dl
-arrowend:
-    mov ah, 2h ;update cursor
-    int 10h
-    jmp input
-
-back:
-    ;move cursor to top left
-    mov ah, 2h
-    xor dx, dx
-    int 10h
-    jmp input
-
-;*********
+;**********
 ;FUNCTIONS
-;*********
+;**********
 
 callenter:
     call enter
@@ -386,6 +299,101 @@ rend:
     pop dx
     pop cx
     ret
+
+
+;******
+;INPUT
+;******
+
+input:
+    ;get commands
+    mov ah, 0h
+    int 16h
+    mov bh, 0h ;graphics reason
+
+    cmp al, 0xd  ;enter
+    je callenter  
+    cmp al, 0x62 ;b
+    je back
+    cmp al, 0x64 ;d
+    je date
+    cmp al, 0x74 ;t
+    je time
+    cmp al, 0x6e ;n
+    je callnew
+    cmp al, 0x6b ;k
+    je kalc 
+    cmp al, 0x68 ;h
+    je hex
+    cmp al, 0x78 ;x
+    je xdec
+    cmp al, 0x2e ;.
+    je real
+    cmp al, 0x6f ;o
+    je os
+    cmp al, 0x6d ;m
+    je memory
+    cmp al, 0x76 ;v
+    je visible
+    cmp al, 0x77 ;w
+    je write
+    cmp al, 0x65 ;e
+    je edit
+    cmp al, 0x63 ;c
+    je copystart  
+    cmp al, 0x66 ;f
+    je callfolder
+    cmp al, 0x69 ;i
+    je info
+    cmp al, 0x7a ;z
+    je zero
+    cmp al, 0x73 ;s
+    je search
+    cmp al, 0x6a ;j
+    je jump
+    cmp al, 0x61 ;a
+    je assembly
+    cmp al, 0x72 ;r
+    je run
+
+    ;else arrows
+arrow:
+    mov al, ah
+    ;get cursor location
+    mov ah, 3h
+    int 10h
+    cmp al, 0x48 ;up
+    je arrowup
+    cmp al, 0x50 ;down
+    je arrowdown
+    cmp al, 0x4b ;left
+    je arrowleft
+    cmp al, 0x4d ;right
+    je arrowright
+    jmp input
+arrowup:
+    dec dh
+    jmp arrowend
+arrowdown:
+    inc dh
+    jmp arrowend
+arrowleft:
+    dec dl
+    jmp arrowend
+arrowright:
+    inc dl
+arrowend:
+    mov ah, 2h ;update cursor
+    int 10h
+    jmp input
+
+back:
+    ;move cursor to top left
+    mov ah, 2h
+    xor dx, dx
+    int 10h
+    jmp input
+
  
 ;*********
 ;COMMANDS
@@ -856,7 +864,9 @@ wpg:
     ;rewrite screen
     push dx
     push di
-    call new
+    xor dx, dx
+    mov ah, 2h ;cursor to top left
+    int 10h
     mov di, si
     call wtype ;rewrite screen
     pop di
@@ -865,7 +875,9 @@ wpg:
     ret
 wins:
     ;scroll bulk to top
-    call new
+    xor dx, dx
+    mov ah, 2h
+    int 10h
     xor si, si
     xor di, di
     jmp typechar ;rewrite screen
@@ -1002,7 +1014,9 @@ wpastend:
     mov ah, 3h ;get cursor
     int 10h
     push dx
-    call new
+    xor dx, dx
+    mov ah, 2h ;cursor to top left
+    int 10h
     push di
     mov di, si
     call wtype ;update screen
@@ -1551,7 +1565,7 @@ aconv:
     je a1bk
     cmp al, 0x45 ;End
     je aE
-    cmp al, 0x65 ;end
+    cmp al, 0h ;end of file
     je asave
     cmp al, 0x3b ;; comment
     je aComment
@@ -2407,9 +2421,13 @@ run:
     call readfiles
     jmp 0x1000:0x2000 ;location of program machine code  
 
+    times 5092-($-$$) db 0h ;fill space
 
-    times 5092-($-$$) db 0h
-break:
+
+;***********
+;CTRL+BREAK
+;***********
+
     ;ctrl+break handler
     ;go to callnew
     mov bx, sp ;store
