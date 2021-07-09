@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.4.3
+PIKOBRAIN MANUAL v1.4.4
 Hanzlu (2019-2021)
 ---------------------
 
@@ -77,10 +77,7 @@ you can press the backspace button. This will bring you back to the "input" wher
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
-Displays the current time in hh:mm:ss format. Does not automatically adjust time for daylight saving.
-
-d, date:
-Displays the current date in yyyy/mm/dd format.
+Displays the current time in 'yyyy/mm/dd hh:mm:ss' format. Does not automatically adjust time for daylight saving.
 
 enter, enter:
 Newline and carriage return as expected.
@@ -125,17 +122,17 @@ Enter a 4 digit hexadecimal number. This is the floating point part of a number 
 If you enter the value 5555 you'll convert the value into a decimal floating point number, 0.333333. 
 This will be displayed as a dot followed by six digits. This command is not 100% accurate in all digits, often the first 4 digits are accurate.
 
-o, os:
-Displays information about the computer. All numbers are in hexadecimal.
+d, drive:
+Displays information about the drive/device that you booted from. All numbers are in hexadecimal.
 First number is the highest folder number you can enter. This number should always be known by the user. It shall also be known that the number is three 2-digit hexadecimal numbers and each of the numbers can not be higher than it is. For example my test machine displayes the number 03FEFE, which means I cannot enter folder
 03FEFF, because that exceeds the limit of the third 2-digit hexadecimal number. More info about folders in the FOLDERS and FILES categories.
 Second number is the highest file you can access within a single folder. If this number is not 3F, you should contact Hanzlu, as files operations may not work.
 
 FOLDERS
 
-You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
+You should make sure to test the d command before dealing with folders. The d command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access a maximum
-of a little more than 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
+of a little more than 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the d command so you do not exceed their limits.
 You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0A are reserved for the operating system, do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
 When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the tab button you will select the current folder.
@@ -160,11 +157,13 @@ It deletes all files that do not have an ASCII 0 (null) character as its first c
 In order to run the command you must press the y key after an ! character (warning) has been shown, as you probably do not want to press z in mistake.
 
 s, search:
-Enter a character, word or string. Pikobrain will display which files within the current folder that has that content within them. Press enter to start the search. Can use backspace. This can also be used as a way of writing text within the input, to make quick notes.
+Enter a character, word or string. Press enter to start the search. Backspace can be used.
+Pikobrain will display which files within the current folder that has that content within them, as well as the (char index) location of the string in the file.
+This can also be used as a way of writing text within the input, to make quick notes.
 
 FILES
 
-In order to access a file you enter a file number after a file manipulation command. A file number is normally in the range 01-3F (hex) (check the o command). If the o
+In order to access a file you enter a file number after a file manipulation command. A file number is normally in the range 01-3F (hex) (check the d command). If the d
 command does not return 3F as its second number, this might make commands work weirdly. Please contact Hanzlu if this is the case.
 Files in Pikobrain are automatically 512 bytes long, however the Text Editor allows you to edit multiple such files at once as one large file, called a bulk.
 
@@ -173,8 +172,8 @@ Enter a file number. You can now write to a file. The w and e commands enter the
 TEXT EDITOR:
 You can use the enter button and the backspace button. You can use all four arrow keys. Up and down arrow can not be used to scroll and will move the cursor to the end
 of the line you go to.
-The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once. Spaces before newline characters are automatically removed, as 
-else backspace will work unexpectedly.
+The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once.
+A line in your file can not end with a space, then backspace stops working properly.
 By pressing the home key, the cursor will go to the top left of the screen. By pressing the end key, the cursor will go to the last character available on the screen.
 In order to copy text which you can paste later, you press the tab key. Pikobrain remembers the character at which the cursor is. When you press the tab key a
 second time Pikobrain will save all the text between the two key presses. **Now Pikobrain has a buffer of text which you can paste.
@@ -188,7 +187,7 @@ Notice, that you should not cancel the writing of the two digit number by pressi
 If you hold shift and the ` button (left of 1) you'll be displayed with a '~' character and a four digit hexadecimal number.
 This number shows you the index of the character the cursor is on. Press any key and you can continue writing.
 In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
-press the excape key. This should display an arrow.
+press the escape key. This should display an arrow. **The copy buffer is reset, but still contains any copied string.
 It is possible to scroll the page. If you press enter enough many times such that you go beyond the lowest row, the screen will be scrolled. It is not possible to use
 arrow keys to scroll up or down, neither will backspace work. In order to scroll you should use the pageup and pagedown keys. You can not scroll up more than the bulk
 allows, and you can not scoll down so much that nothing would be shown on the screen, if you do, things will work unexpectedly.

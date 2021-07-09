@@ -7,13 +7,12 @@
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.4.3", 0xd, 0xa
+    db "Pikobrain v1.4.4", 0xd, 0xa
     db "time", 0xd, 0xa
-    db "date", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "new", 0xd, 0xa
     db "back", 0xd, 0xa
-    db "os", 0xd, 0xa
+    db "drive", 0xd, 0xa
     db "kalc [4h][4h][1h]", 0xd, 0xa
     db "hex [4h]", 0xd, 0xa
     db "xdex [5d]", 0xd, 0xa
@@ -242,12 +241,12 @@ folder:
     mov fs, ax
     mov si, 0x13ff ;!OS size depending
     call filenum
-    cmp cl, 0h ;double press tab to select current folder-> value will be negative
-    jl fsame
+    cmp cl, 0x69 ;double press tab to select current folder
+    je fsame
     cmp cl, 0x44 ;double semi-colon to only enter last two digits
     je flast
-    cmp cl, 0x3f ;double press h to select home folder (000000)
-    jg fhome
+    cmp cl, 0x41 ;double press h to select home folder (000000)
+    je fhome
     and cl, 3h ;clear bits
     push cx
     call filenum
@@ -315,8 +314,6 @@ input:
     je callenter  
     cmp al, 0x62 ;b
     je back
-    cmp al, 0x64 ;d
-    je date
     cmp al, 0x74 ;t
     je time
     cmp al, 0x6e ;n
@@ -329,8 +326,8 @@ input:
     je xdec
     cmp al, 0x2e ;.
     je real
-    cmp al, 0x6f ;o
-    je os
+    cmp al, 0x64 ;o
+    je drive
     cmp al, 0x6d ;m
     je memory
     cmp al, 0x76 ;v
@@ -399,7 +396,7 @@ back:
 ;COMMANDS
 ;*********
 
-date:
+time:
     ;get date
     ;convert to decimal
     mov ah, 4h
@@ -415,8 +412,8 @@ date:
     int 10h
     mov ch, dl
     call xtox
-    jmp input
-time:
+    mov al, 0x20 ;space
+    int 10h
     ;get time
     ;convert to decimal
     mov ah, 2h
@@ -471,13 +468,9 @@ visible:
 read:
     ;read file as ASCII chars
     call readfiles
-    mov bl, al ;number of files
-    shl bx, 9h ;*200h, buffer size
-    mov byte [es:bx], 0h ;mark end of buffer
-    mov dx, bx
 readstart: ;used by wdel
     push cx ;store file number
-    call new ;due to texte ditor
+    call new ;due to text editor
     xor bx, bx
     xor si, si ;index of 1st char on screen in editor
 nextread:
@@ -490,7 +483,7 @@ readcon:
     mov ah, 0xe ;print char
     int 10h
     inc bx
-    cmp bx, dx ;end of file
+    cmp al, 0h ;end of file
     jne nextread
 readend:
     pop cx ;file number
@@ -498,7 +491,6 @@ readend:
 ;si stuff for editor
 readsi: ;si stores location of first char on screen (in text editor)
     ;si to next line
-    push dx
     push ax
     push bx
     mov bh, 0h
@@ -510,7 +502,6 @@ readsi: ;si stores location of first char on screen (in text editor)
     jne rsiend
     call rsiloop
 rsiend:
-    pop dx
     jmp readcon
 rsiloop:
     ;mov si to next line
@@ -544,15 +535,9 @@ write:
     call new
     xor bx, bx ;pointer
     xor si, si ;for scrolling
-    mov dx, 0x200 ;size of buffer
-writeram:
-    ;clear buffer
-    mov dword [es:bx], 0h
-    add bx, 4h
-    cmp bx, dx
-    jl writeram ;jl due to edit
+wedit: ;for edit
+    mov word [es:bx], 0h
     mov di, cx ;index of cursor char
-    mov fs, dx ;store size of buffer
     mov ax, 0x1140 ;copy buffer
     mov gs, ax
 typechar: ;main editor loop
@@ -663,37 +648,20 @@ wgetchar:
     cmp al, 0x7e ;~ char count
     je wchar
     call wloopstart
-wtypend:
-    mov cx, fs ;due to wtypend
-    cmp bx, cx ;check if whole buffer filled
-    jge wsize
-    jmp typechar ;return to main loop
-wsize:
-    ;increase size of buffer by clearing more space
-    add cx, 0x200
-wsizeloop:
-    ;clear buffer
-    mov dword [es:bx], 0h
-    add bx, 4h
-    cmp bx, cx
-    jl wsizeloop
-    mov fs, cx ;new value
     jmp typechar
 wloopstart:
     mov bx, di ;pointer
-    mov cx, fs ;buffer size
 wloop:
     ;add char to buffer
     mov ah, [es:bx]  ;get current char
     mov [es:bx], al  ;place new char (the typed one)
     mov al, ah       ;store the old char as the "new char"
     inc bx
-    cmp bx, cx       ;check if file end
-    jge wloopend
     cmp al, 0h       ;check if file end
     jne wloop
 wloopend:
     inc di           ;update di
+    mov word [es:bx], 0h ;get 2 null chars
     ret
 wleft:
     dec di
@@ -821,14 +789,6 @@ wdown2:
     je wgetchar
     jmp wdown2
 wenter:
-    ;remove spaces before newline, else unexpected behaviour
-    dec di
-    cmp byte [es:di], 0x20 ;space
-    jne wenterspace
-    call wbloopstart ;remove space
-    jmp wenter ;check if multiple spaces
-wenterspace:
-    inc di ;due to dec above
     mov al, 0xd
     call wloopstart
     ;di already increased
@@ -837,13 +797,13 @@ wenterspace:
     mov al, 0xa
     call wloopstart
     cmp dh, 0x18 ;bottom row
-    jne wtypend
+    jne typechar
     mov ax, 0xe0d ;print enter, else bug on last row
     int 10h
     mov al, 0xa
     int 10h
     call rsiloop ;si to next line
-    jmp wtypend
+    jmp typechar
 wpgup:
     ;scroll page up
     cmp si, 0h
@@ -883,7 +843,6 @@ wins:
     jmp typechar ;rewrite screen
 wdel:
     ;scroll bulk to bottom
-    mov dx, fs ;size of buffer for readstart
     call readstart
     mov di, bx ;last char
     jmp wgetchar
@@ -926,7 +885,7 @@ wspecial:
     mov ah, 0xe ;output char
     int 10h
     call wloopstart ;place char in buffer
-    jmp wtypend
+    jmp typechar
 wchar:
     ;ouput di = index of cursor char
     mov cx, di
@@ -1028,8 +987,14 @@ wpastend:
 save:
     ;save files
     pop cx ;file number
-    mov bx, fs ;size of buffer = number of files to save
+    mov bx, 0xffff
+saveloop:
+    ;get size of file
+    inc bx
+    cmp byte [es:bx], 0h
+    jne saveloop
     shr bx, 9h ;/200h
+    inc bl
     call setfolder
     mov al, bl
     mov ah, 3h
@@ -1046,7 +1011,7 @@ edit:
     call read
     push cx ;file number, for save
     mov cx, bx ;number of chars in file
-    jmp writeram
+    jmp wedit
     
 copystart:
     mov di, 0x8080 ;source and destination disk (hard drive)
@@ -1377,7 +1342,7 @@ ilend:
     jmp iloop ;read next file
 
 zero:
-    ;erases files in folder (rmdir)
+    ;erases all files in folder (rmdir)
     mov ax, 0xe21 ;!
     int 10h
     ;get y for yes
@@ -1472,6 +1437,12 @@ sfind:
     call xtox
     mov ax, 0xe2e ;.
     int 10h
+    mov ch, bh
+    call xtox
+    mov ch, bl
+    call xtox
+    mov al, 0x20
+    int 10h
     jmp sfile
 snot:
     inc bx ;next char
@@ -1485,7 +1456,7 @@ sfile:
     je input
     jmp sloop
 
-os:
+drive:
     ;display largest folder
     mov ah, 8h ;get drive info
     mov dl, 0x80
@@ -2429,7 +2400,7 @@ run:
 ;***********
 
     ;ctrl+break handler
-    ;go to callnew
+    ;goes to callnew
     mov bx, sp ;store
     mov sp, 0xffe ;first stack item
 breakloop:
