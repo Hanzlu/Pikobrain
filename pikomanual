@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.4.4
+PIKOBRAIN MANUAL v1.4.5
 Hanzlu (2019-2021)
 ---------------------
 
@@ -170,38 +170,58 @@ Files in Pikobrain are automatically 512 bytes long, however the Text Editor all
 w, write:
 Enter a file number. You can now write to a file. The w and e commands enter the "Text Editor" which is explained now:
 TEXT EDITOR:
-You can use the enter button and the backspace button. You can use all four arrow keys. Up and down arrow can not be used to scroll and will move the cursor to the end
-of the line you go to.
-The enter character (newline) is 2 characters (0xd and 0xa hex ASCII), and backspace erases both at once.
-A line in your file can not end with a space, then backspace stops working properly.
-By pressing the home key, the cursor will go to the top left of the screen. By pressing the end key, the cursor will go to the last character available on the screen.
+The text editor works as you'd expect with most normal keys, however there are certainly some things that are different. Those keys will be explained now:
+Enter, works as you'd expect. **Stored as two characters (0xD and 0xA hexadecimal ASCII, which are seen as one by the editor, so backspace erases both at once)
+Backspace, works as expected, but will not erase if cursor is in top left (which would scroll the screen)
+Side arrows, works as expected, but will not scroll the screen (will do nothing if the cursor is in top-left or bottom-right)
+Up/down arrows, goes to the end of the line in the arrow's direction (will not scroll, and stop in top-right or bottom-left at most)
+Arrows and backspace can in other words not scroll, enter can.
+
+In order to scroll you should use page up and page down keys. They will scroll one line.
+Using page down to scroll everything away, will cause bugs. Page up will not scroll if the page is at the top already.
+The cursor will remain by the same character when you scroll.
+
+The home key, will move the cursor to the top left of the screen. If the cursor disappears you should press the home key, then the editor may work again.
+The end key, will move the cursor to the bottom right. If the cursor disappears this key will not work.
+
+The insert key, will scroll the whole file to the top.
+The delete key, will scroll the whole file to the bottom (re-read).
+On laptops the insert and delete keys may be on the numpad. Or they'll be next to the function keys. Then you may have to hold the fn key before pressing ins or del.
+
 In order to copy text which you can paste later, you press the tab key. Pikobrain remembers the character at which the cursor is. When you press the tab key a
 second time Pikobrain will save all the text between the two key presses. **Now Pikobrain has a buffer of text which you can paste.
 When you would press the tab key for the second time you can use shift+tab instead to cut the text rather than just copying it. This will only work if the 
 cursor was closer to the top left of the screen (start of file) when you pressed shift+tab.
 To paste text you type the '|' key (next to enter, and shift). This will paste the characters between your first and second tab presses. It's possible to copy-paste
-between files. You should not paste such that it will scroll the screen, as this will lead to unexpected stuff.
-Pressing tab an odd number of times and then quitting the Text Editor, will make the copy buffer reset itself. **Unless pressing backspace after pressing \
-You can write special characters (ASCII 00-FF). Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Some characters in the range 00-1F might be 'invisible' and not be printed expectedly, but will be stored.
+between files.
+The screen will not scroll when you paste. You can press delete to re-read the file and get things working properly if you paste so much.
+
+You can write special characters (ASCII 00-FF). Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Some characters in the range 00-1F might be 'invisible' (cause bugs) and not be printed expectedly, but will be stored.
 Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input', and not save.
+
 If you hold shift and the ` button (left of 1) you'll be displayed with a '~' character and a four digit hexadecimal number.
 This number shows you the index of the character the cursor is on. Press any key and you can continue writing.
-In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
-press the escape key. This should display an arrow. **The copy buffer is reset, but still contains any copied string.
-It is possible to scroll the page. If you press enter enough many times such that you go beyond the lowest row, the screen will be scrolled. It is not possible to use
-arrow keys to scroll up or down, neither will backspace work. In order to scroll you should use the pageup and pagedown keys. You can not scroll up more than the bulk
-allows, and you can not scoll down so much that nothing would be shown on the screen, if you do, things will work unexpectedly.
-When using the pageup and pagedown keys, the cursor will remain by the same character as before. For that reason you should not scroll such that the cursor would 
-disappear. In order to get the cursor back onto the screen, you should press the home key, before typing any text.
-Using the insert key will scroll the whole bulk to the top, the delete key will scroll to the very bottom of the bulk.
-On laptops the insert and delete keys may be on the numpad. Or they'll be next to the function keys. Then you may have to hold the fn key before pressing ins or del.
-Since files are 512 bytes large, this means that if you were to type more than 512 bytes and then save the file, the Text Editor will save your content over multiple
-files (as a bulk). This also goes for the edit command which can immediately open multiple files into the Text Editor. When saving a bulk the space that is unfilled
-in the last file will be filled with ASCII 0 (null) characters.
-You should not fill a whole row with characters, and rather use enter to get to the next line, as this can sometimes lead to unexpected behaviour.
 
-In order to delete a file you write to a file using the w command, and immediately save, this will fill the file with null (ASCII 00) characters. It is also possible
-to copy empty files into the files to delete.
+In order to search for a string in the bulk, press f1. A * character should be displayed. Enter a string. The cursor will jump to the first instance of the string
+in the bulk.
+In order to search for the next occurance, press f2. This will search for the next occurance, starting from the location of the cursor.
+If a string is not found when using f1 or f2, the cursor will stop at the end of the bulk.
+
+In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
+press the escape key. This should display an arrow.
+**The copy buffer is reset when you save or exit. Copied strings will still remain in the buffer, so you can paste into other files.
+Since files are 512 bytes large, this means that if you were to type more than 512 bytes and then save the file, the Text Editor will save your content over multiple
+files (as a bulk). The text editor will save as many files as necessary to cover the amount of text that has been written (for a maximum of 63 files (3F hex)).
+**If the last file in the bulk is full (contains 512 bytes of actual text) then the text editor will save one more file, which will be "invisible" since it starts with
+a null character.
+
+You should not fill a whole row with characters, as that causes bugs. Use enter.
+A line in your file can not end with a space, then backspace stops working properly.
+**Pressing tab an odd number of times and then leaving the Text Editor will make the copy buffer reset. Unless pressing backspace after pressing \, then
+this will not happen.
+
+In order to delete a file you write to a file using the w command, and immediately save. It is also possible to copy empty files into the files to delete.
+That allows you to delete multiple files at once.
 
 e, edit:
 Works the same way as the w command but will display the file content and allow you to continue writing from the end of the file. The e command also requires a second
@@ -215,6 +235,14 @@ It shows all content of the file, and null characters (00) are displayed as ".."
 
 v, visible:
 Same as memory, but asks for a second argument, which is a two digit hexadecimal number. That number (opcode) will be displayed as two dots "..".
+
+p, place:
+Allows you to write a byte to a certain location in a file.
+Enter the file number, then a four digit hexadecimal number for the location (offset/index), then the byte to write as a two digit hexadecimal number.
+If you wish to write multiple consecutive bytes, you can press space, and write another, then space again if you yet need to write more and so on.
+To exit, press any key besides space after you've written the byte value, and you'll return to the input.
+Pressing backspace will cause the changes not to be saved. Check the CUSTOMIZATION section to read about changing screen colors.
+The command can be used to recover files, that has been deleted by the z or w commands.
 
 c, copy:
 Enter a file number for the source file. Enter the number of files to read as a two digit hexadecimal number. A 'w' character should be displayed.
@@ -245,6 +273,7 @@ In normal assembly language a comma is used between destination and source. This
 between various mneumonics, but most of the time spaces should be used to separate mneumonics and arguments from each other.
 All the basic registers (AX, AH, AL, BX, BH..) are usable. You can also use SI and DI, however they are called SX and TX and are 16 bit.
 Segmentation is possible using es:bx, fs:si and gs:di. Read the 'Other Commands' part for this.
+In order to stop a program, you should use the E (end) mneumonic. Otherwise the program may never stop, or do really weird things.
 Here is a list of 2 character mneumonics in Pikobrain (2 arguments, destination and source) (each require either an R or an N at the end such as MR or MN, not just M):
 M, move
 A, add
@@ -309,6 +338,7 @@ the registers that are affected by using the macro:
 WA, converts al from ASCII to HEX. If al is 42 (ascii B) for example it becomes 0B as that is hexadecimal. [al]
 WE, prints a newline. [ax]
 WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x11fd-0x11ff. [ax, cl, fs, si]
+WG, allows the user to write a string to the search buffer at 0x1180:0x0 (gs:di points to it). [ax, gs, di]
 WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
 WN, let's the user input a two digit hex number which is stored in cl. The user cannot press backspace as this will make the program end and jump back to the input. [ax, cl]
 WR, returns a random number into al. The other used registers also receive "random" numbers, but are "useless" for looping random numbers. [ax, fs, si]
@@ -319,7 +349,7 @@ When a new version of Pikobrain is realeased it can cause macros to not work, ma
 necessary to re-assemble programs after having updated Pikobrain to a new version.
 
 Other commands:
-E, End (this will ask the user for a key press and return the control of the computer back to the OS) (this is necessary to end a program, and you can have multiple)
+E, End. Will return control back to the OS (** with a far return). This is necessary to end a program, and you can have multiple in one program.
 ;, comment. Allows you to type anything until the next newline character without affecting the assembler process. Notice that the comment end with a newline.
 ", string. Prints any text until the next " character. Basically a print function. You must be in a text video mode in order for it to work. Alters the value of AX.
 
@@ -335,7 +365,9 @@ If you see a label name followed by a dot, this means you have a label error. Th
 If you also see an 'a' character this means the program as been assembled (but with errors), and you should enter a destination file.
 
 r, run:
-The r command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will jump to the user's program. Therefore it is necessary to include the E mneumonics in the code, so that control is given back to the operating system.
+The r command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will make a call to the user's program. Therefore it is necessary to include the E 
+mneumonics in the code, so that control is given back to the operating system when the program is finished.
+If the program is left in a graphics video mode, it may be necessary to press n to return to text mode.
 
 TROUBLES
 --------
@@ -350,23 +382,24 @@ Ctrl+Alt+Delete can be used to restart the machine, but it doesn't always work. 
 -----------------
 Pikobrain uses some parts of the RAM for its own needs. This is a list of segments it uses and their use:
 0x1000:0x0 - 0x1000:0x13ff, OS machine code
-0x1120:0x0 - 0x1120:0x01ff, Copy buffer
-0x1140:0x0 - 0x1140:0x01ff, Search command buffer
+0x1140:0x0 - 0x1140:0x01ff, Copy buffer
 0x1160:0x0 - 0x1160:0x0001, Random number generator
+0x1180:0x0 - 0x1180:0x01ff, Search and find buffer
+0x11a0:0x0 - 0x11a0:0x01ff, Second search and find buffer
 0x1200:0x0 - 0x1a00:0x0000, Normal file read buffer (maximum size, depends on size of bulk or program)
 0x1200:0x0 - 0x3000:0x0000, Assembler buffer (this buffer may be altered except for the file read buffer above)
-These buffers should not be used by users, as it can make the OS (or user programs) run in unexpected ways.
+User programs should not run in buffers lower than 0x1200:0x0, or in the space starting from 0x1200:0x0 that a running program takes up.
 The Text Editor is about 1kB large, whereas the assembler takes up about 1.8kB. In other words they take up more than half the size of Pikobrain together.
 The effective (excluding the list of commands) part of the bootloader is about 85 bytes large.
 
-**CUSTOMIZATION
----------------
-By altering the value at location 1000:0222 you can change the colors the screen has using BIOS color attributes.
+CUSTOMIZATION
+-------------
+By using the p command to alter the value at location 0022 in file 02 of the OS files, you can change the colors of the screen, using BIOS color attributes.
 (This (and other memory values in this file) is not always up to date. Use v command with 023E as arguments for color altering)
 This value can also be changed from within the source code in piko.asm.
 
 **VERSIONS
---------
+----------
 The version number is made up of three numbers:
 The first number increases if a major change related to hardware is added to Pikobrain.
 The second number increases if a larger system change is made to Pikobrain.
@@ -381,6 +414,7 @@ v1.2   introduced the assembler
 v1.4   allowed bulk editing in text editor
 
 **TECHNICAL
+-----------
 This includes information of how certain things have been implemented in Pikobrain. I implemented these things on my own, without using any "standard" methods,
 and rather comming up with the solutions myself.
 
