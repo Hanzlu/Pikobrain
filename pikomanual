@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.4.5
+PIKOBRAIN MANUAL v1.4.6
 Hanzlu (2019-2021)
 ---------------------
 
@@ -371,7 +371,7 @@ If the program is left in a graphics video mode, it may be necessary to press n 
 
 TROUBLES
 --------
-By pressing Ctrl+Break, the OS will stop whatever it is doing, clear the screen and jump to the input (if possible). This can be used in case something crashes or a
+By pressing Ctrl+Break, the OS will stop whatever it is doing and jump to the input (if possible). This can be used in case something crashes or a
 program goes into an infinite loop. If this does not solve the issue, try restarting the machine. If that does not help, try reinstalling Pikobrain on the machine. If 
 nothing seems to solve the issue, please contact Hanzlu on GitHub issues or on the OSDEV Wiki Forums.
 I will not stand responsible for your use of the OS, it is on your own risk. That does not mean it is not safe. I test and improve the OS to eliminate bugs, increase 

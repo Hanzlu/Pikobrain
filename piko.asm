@@ -5,8 +5,8 @@
 ;***********
 
 ;constants instead of magic numbers
-CTRL_BREAK equ 0x100011e4 ;location of ctrl+break handler
-OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h
+CTRL_BREAK equ 0x100013db ;location of ctrl+break handler
+OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h (read)
 OS_SIZEd equ 0x13fd ;3rd last byte in OS, for file operations
 OS_SIZEf equ 0x13ff ;last byte in OS
 
@@ -19,7 +19,7 @@ SEARCH_BUFFER2 equ 0x11a0
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.4.5", 0xd, 0xa
+    db "Pikobrain v1.4.6", 0xd, 0xa
     db "time", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "new", 0xd, 0xa
@@ -54,8 +54,8 @@ bootloader:
     ;redirect ctrl+break handler
     xor ax, ax
     mov es, ax
-    mov bx, 0x6c
-    mov dword [es:bx], CTRL_BREAK ;location of handler
+    mov bx, 0x6c ;location in Interrup Vector Table
+    mov dword [es:bx], CTRL_BREAK ;location of handler in code
     
     ;read OS files into RAM
     mov ax, 0x1000
@@ -69,13 +69,15 @@ bootloader:
     jne $
 
     ;check if install has been made
-    mov bx, 0x1fd ;location of variable
-    cmp byte [es:bx], 1h ;1=installing
+    mov bx, 0x1fd           ;location of variable
+    cmp byte [es:bx], 1h    ;if installed: jump to OS
     jne jmppb
-    mov byte [es:bx], 0h ;set as 0=installed
+    mov byte [es:bx], 0h    ;else: mark as installed, and install
+    
     ;set destination drive for install
     shr dl, 7h
-    or dl, 0x80 ;0->80, 80->81
+    or dl, 0x80 ;0->80, 80->81 bitwise math
+    
     ;write files to hard drive
     xor bx, bx
     mov ah, 3h ;use same values as previous int 13h
@@ -84,11 +86,11 @@ bootloader:
     jne $
 
 jmppb:
-    jmp 0x1000:0x0200 ;Pikobrain
+    jmp 0x1000:0x0200 ;jump to Pikobrain main
 
     ;fill up space
     times 509-($-$$) db 0h
-    db 1h ;install boolean
+    db 1h ;1=installation=false, 0=installation=true
     dw 0xaa55
 
 
@@ -101,7 +103,7 @@ jmppb:
     mov es, ax
     xor bx, bx
     mov byte [es:bx], 0h
-    ;setup random buffer
+    ;setup random number generator buffer
     add bh, 4h ;+400h
     mov byte [es:bx], 0h
 
@@ -110,15 +112,15 @@ callnew:
     jmp input
 new:
     ;clear screen
-    pusha ;store for assembly macros
+    pusha
     ;set graphics mode
-    mov ax, 3h
+    mov ax, 3h ;80x25 16 color text
     int 10h
     ;set color and clear screen
     mov ax, 0x600
     mov bh, 0x3e ;cyan-yellow <-- change this value to change colors in Pikobrain
     xor cx, cx
-    mov dx, 0x184f
+    mov dx, 0x184f ;size of screen 25x80
     int 10h
     popa
     ret
@@ -132,7 +134,7 @@ callenter:
     call enter
     jmp input
 enter:
-    ;print enter
+    ;print enter char
     mov ax, 0xe0d
     int 10h
     mov al, 0xa
@@ -165,20 +167,21 @@ readfiles:
     call setfolder
     mov ah, 2h
     mov al, dl
-    mov dl, 0x80 ;drive
+    mov dl, 0x80
     int 13h ;read
     ret
 
 xtox:
-    ;output ch as hex
+    ;output ch as 2 digit hex number
     mov al, ch
-    and al, 0xf ;clear upper nibble
+    and al, 0xf ;clear upper nibble, to get second digit only
     call xtoasc
     mov ah, al ;store
     mov al, ch
-    shr al, 4h ;get upper nibble
+    shr al, 4h ;get upper nibble, to get first digit only
     call xtoasc
     mov ch, ah ;store
+    ;output two numbers
     mov ah, 0xe
     int 10h
     mov al, ch
@@ -210,7 +213,7 @@ filenum:
     int 16h
     cmp al, 0x8 ;backspace = cancel
     je filenquit
-    mov ah, 0xe
+    mov ah, 0xe ;output
     int 10h
     call atohex
     mov cl, al
@@ -225,16 +228,17 @@ filenum:
     add cl, al ;lower nibble
     ret
 filenquit:
-    ;clear stack
+    ;exit writing, clear stack, go to input
     mov sp, 0x1000
-    jmp callnew ;if used as Pikoasm macro, this will cancel program
+    jmp input ;if used as Pikoasm macro, this will cancel program
 
 setfolder:
-    ;set folder to current folder number
-    and cl, 0x3f ;clear upper bits
+    ;set folder to current folder number, for int 13h
+    ;folder number stored in the end of the OS code
+    and cl, 0x3f ;clear upper bits, cl is file number
     mov ax, 0x1000
     mov fs, ax
-    mov si, OS_SIZEd ;writes forward
+    mov si, OS_SIZEd
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al
@@ -265,6 +269,7 @@ folder:
     call filenum
     push cx
     call filenum
+    ;write values, to change folder number
     mov [fs:si], cl
     dec si
     pop cx
@@ -274,17 +279,17 @@ folder:
     mov [fs:si], cl 
     ret
 fhome:
-    ;set to 000000
+    ;set folder number to 000000
     dec si
     mov word [fs:si], 0h
     dec si
     mov byte [fs:si], 0h
     ret
 flast:
-    ;only change last two digits
+    ;only change last two digits of folder number
     call filenum
     mov [fs:si], cl
-fsame: ;do nothing, use current folder
+fsame: ;do nothing, use current folder number
     ret
 
 random:
@@ -307,7 +312,7 @@ rcon:
     sub ah, dl ;update number = generate
     sub al, ah ;al is random number returned
 rend:
-    mov [fs:si], ax
+    mov [fs:si], ax ;store
     pop dx
     pop cx
     ret
@@ -331,12 +336,12 @@ sword:
     int 10h
     jmp sword
 swordcon:
-    mov [gs:di], al ;store
+    mov [gs:di], al ;store char in buffer
     ;if enter=end
-    cmp al, 0xd
+    cmp al, 0xd ;if enter, end writing
     je ssend
     ;output
-    mov ah, 0xe
+    mov ah, 0xe ;output char
     int 10h  
     inc di
     jmp sword
@@ -479,13 +484,13 @@ time:
 memory:
     ;read file in hex
     call readfile
-    mov dl, 0h ;due to visible, show m command running
+    mov dl, 0h ;due to visible, show m command running not v
 menter:
     mov dh, 0h ;column counter
     call enter
 mbyte:
     mov ch, [es:bx] ;get content of byte
-    cmp ch, dl ;if value == visible
+    cmp ch, dl ;if value == visible command value, or 0h when m command
     je mvisible
     call xtox ;output as hex
 mcon:
@@ -496,7 +501,7 @@ mcon:
     je input
     ;newline if row filled
     inc dh
-    cmp dh, 0x19 ;25
+    cmp dh, 0x19 ;25, width of content
     jne mbyte
     jmp menter
 mvisible:
@@ -544,13 +549,13 @@ read:
 rstart: ;used by wdel
     mov ax, SEARCH_BUFFER2
     mov gs, ax
-    xor di, di ;gs:di location of cmp buffer, due to wfind
+    xor di, di ;gs:di location of cmp buffer, due to wfind this is set to 0h
     mov byte [gs:di], 0h
 readstart: ;used by wfind
     xor bx, bx
     xor si, si ;index of 1st char on screen in editor
     call new ;due to text editor
-readstart2: ;used by wfnext
+readstart2: ;used by wfnext, don't clear screen
     push cx ;store file number
 nextread:
     mov al, [es:bx] ;get char
@@ -2502,9 +2507,10 @@ run:
     ;read files
     call readfiles
     call 0x1000:0x2000 ;location of program machine code
+runcall: ;used in ctrl+break handler
     jmp input 
 
-    times 5092-($-$$) db 0h ;fill space
+    times 5083-($-$$) db 0h ;fill space
 
 ;***********
 ;CTRL+BREAK
@@ -2520,7 +2526,11 @@ breakloop:
     jne breakcon
     ;set new cs:ip values to 0x1000:0x200
     push ax ;0x1000
-    mov ax, 0x200
+    sub sp, 2h
+    pop ax
+    cmp ax, runcall ;if ctrl+break pressed during program running
+    je breakcon
+    mov ax, input
     push ax
     mov sp, bx ;reset
     iret
