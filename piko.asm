@@ -5,26 +5,34 @@
 ;***********
 
 ;constants instead of magic numbers
-CTRL_BREAK equ 0x100013db ;location of ctrl+break handler
+CTRL_BREAK equ 0x13db ;location of ctrl+break handler [0x1000:CTRL_BREAK]
 OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h (read)
 OS_SIZEd equ 0x13fd ;3rd last byte in OS, for file operations
 OS_SIZEf equ 0x13ff ;last byte in OS
 
-COPY_BUFFER equ 0x1140
-RANDOM_BUFFER equ 0x1160
-SEARCH_BUFFER equ 0x1180
-SEARCH_BUFFER2 equ 0x11a0
+RANDOM_BUFFER equ 0x1140
+SEARCH_BUFFER equ 0x1141
+SEARCH_BUFFER2 equ 0x1148
+COPY_BUFFER equ 0x1150
 
 
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.4.6", 0xd, 0xa
-    db "time", 0xd, 0xa
-    db "enter", 0xd, 0xa
+    db "Pikobrain v1.5", 0xd, 0xa
     db "new", 0xd, 0xa
+    db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
-    db "drive", 0xd, 0xa
+    db "time", 0xd, 0xa
+    db "memory [fi]", 0xd, 0xa
+    db "visible [fi][2h]", 0xd, 0xa
+    db "place [fi][4h][2h]['']", 0xd, 0xa
+    db "write [fi]", 0xd, 0xa
+    db "edit [fi][2h]", 0xd, 0xa
+    db "delete [fi][2h]", 0xd, 0xa
+    db "link [fi][fi][2h]", 0xd, 0xa
+    db "copy [fi][2h][fo][fi]", 0xd, 0xa
+    db "jump [1h][fi][2h][fo][fi]", 0xd, 0xa
     db "kalc [4h][4h][1h]", 0xd, 0xa
     db "hex [4h]", 0xd, 0xa
     db "xdex [5d]", 0xd, 0xa
@@ -32,14 +40,7 @@ jmp bootloader
     db "folder [fo]", 0xd, 0xa
     db "search [str]", 0xd, 0xa
     db "info", 0xd, 0xa
-    db "zero ['y']", 0xd, 0xa
-    db "write [fi]", 0xd, 0xa
-    db "edit [fi][2h]", 0xd, 0xa
-    db "memory [fi]", 0xd, 0xa
-    db "visible [fi][2h]", 0xd, 0xa
-    db "place [fi][4h][2h]['']", 0xd, 0xa
-    db "copy [fi][2h][fo][fi]", 0xd, 0xa
-    db "jump [1h][fi][2h][fo][fi]", 0xd, 0xa
+    db "os", 0xd, 0xa
     db "assembly [fi][2h][fi]", 0xd, 0xa
     db "run [fi][2h]"
 
@@ -55,7 +56,9 @@ bootloader:
     xor ax, ax
     mov es, ax
     mov bx, 0x6c ;location in Interrup Vector Table
-    mov dword [es:bx], CTRL_BREAK ;location of handler in code
+    mov word [es:bx], CTRL_BREAK ;location of handler in code
+    add bx, 2h
+    mov word [es:bx], 0x1000
     
     ;read OS files into RAM
     mov ax, 0x1000
@@ -98,13 +101,13 @@ jmppb:
 ;PIKOBRAIN
 ;**********
 
-    ;setup copy buffer
-    mov ax, COPY_BUFFER
+    ;setup random number generator buffer
+    mov ax, RANDOM_BUFFER
     mov es, ax
     xor bx, bx
     mov byte [es:bx], 0h
-    ;setup random number generator buffer
-    add bh, 4h ;+400h
+    ;setup copy buffer
+    inc bh ;+100h 0x1140->0x1150
     mov byte [es:bx], 0h
 
 callnew:
@@ -158,6 +161,7 @@ readfiles:
     mov ax, 0x1200
     mov es, ax
     xor bx, bx
+readfiles2: ;used by link
     ;first file
     call filenum
     push cx ;store number
@@ -360,24 +364,14 @@ input:
     int 16h
     mov bh, 0h ;graphics reason
 
+    cmp al, 0x6e ;n
+    je callnew
     cmp al, 0xd  ;enter
     je callenter  
     cmp al, 0x62 ;b
     je back
     cmp al, 0x74 ;t
     je time
-    cmp al, 0x6e ;n
-    je callnew
-    cmp al, 0x6b ;k
-    je kalc 
-    cmp al, 0x68 ;h
-    je hex
-    cmp al, 0x78 ;x
-    je xdec
-    cmp al, 0x2e ;.
-    je real
-    cmp al, 0x64 ;d
-    je drive
     cmp al, 0x6d ;m
     je memory
     cmp al, 0x76 ;v
@@ -388,18 +382,30 @@ input:
     je write
     cmp al, 0x65 ;e
     je edit
+    cmp al, 0x64 ;d
+    je delete
+    cmp al, 0x6c ;l
+    je link
     cmp al, 0x63 ;c
-    je copystart  
+    je copystart
+    cmp al, 0x6a ;j
+    je jump
+    cmp al, 0x6b ;k
+    je kalc 
+    cmp al, 0x68 ;h
+    je hex
+    cmp al, 0x78 ;x
+    je xdec
+    cmp al, 0x2e ;.
+    je real
     cmp al, 0x66 ;f
     je callfolder
     cmp al, 0x69 ;i
     je info
-    cmp al, 0x7a ;z
-    je zero
     cmp al, 0x73 ;s
     je search
-    cmp al, 0x6a ;j
-    je jump
+    cmp al, 0x6f ;o
+    je os
     cmp al, 0x61 ;a
     je assembly
     cmp al, 0x72 ;r
@@ -546,7 +552,7 @@ ploop:
 read:
     ;read file as ASCII chars
     call readfiles
-rstart: ;used by wdel
+rstart: ;used by wdel, wgoto
     mov ax, SEARCH_BUFFER2
     mov gs, ax
     xor di, di ;gs:di location of cmp buffer, due to wfind this is set to 0h
@@ -731,6 +737,10 @@ wgetchar:
     je wfind
     cmp ah, 0x3c ;f2
     je wfnext
+    cmp ah, 0x3d ;f3
+    je wreplace
+    cmp ah, 0x3e ;f4
+    je wgoto
     ;output character typed
     mov ah, 0xe
     int 10h
@@ -1014,10 +1024,9 @@ wchar:
     jmp typechar
 wfind:
     ;find string in file
-    mov ax, 0xe2a ;*
-    int 10h
     call sget ;get string
     call readstart ;re-read
+wfend:
     mov di, bx
     jmp typechar
 wfnext:
@@ -1027,8 +1036,72 @@ wfnext:
     mov gs, ax
     xor di, di ;gs:di search word
     call readstart2
-    mov di, bx
-    jmp typechar
+    jmp wfend
+wreplace:
+    ;replace string created by f1 with specified string
+    mov ax, SEARCH_BUFFER2
+    mov gs, ax
+    xor di, di
+    call sword ;get string that will replace
+    xor bx, bx
+wrloop:
+    mov ax, SEARCH_BUFFER ;when comparing, find old string
+    mov gs, ax
+    xor di, di
+wrcomp:
+    ;compare chars between buffers  
+    cmp byte [es:bx], 0h ;end of file
+    je wdel
+    mov al, [gs:di]
+    cmp al, 0xd
+    je wrfound
+    cmp al, [es:bx]
+    jne wrnot
+    ;equal
+    inc bx
+    inc di
+    jmp wrcomp
+wrnot:
+    ;chars unequal
+    inc bx
+    xor di, di
+    jmp wrcomp
+wrfound:
+    ;string found, replace
+    ;remove old string
+    dec bx ;right char
+    push bx
+    call wbloop
+    pop bx
+    dec di ;must be after call to be right number of times
+    je wrcon
+    jmp wrfound
+wrcon:
+    ;write new string
+    mov ax, SEARCH_BUFFER2
+    mov gs, ax
+wrwrite:
+    mov al, [gs:di]
+    cmp al, 0xd
+    je wrloop
+    push bx
+    call wloop ;increases di
+    pop bx
+    inc bx
+    jmp wrwrite
+wgoto:
+    ;go to certain char in file
+    call filenum ;get location into ax
+    mov ch, cl
+    call filenum
+    mov bx, cx
+    mov al, [es:bx]
+    push ax ;save current character
+    mov byte [es:bx], 0h ;mark location
+    call rstart ;read until null char
+    pop ax
+    mov [es:bx], al ;reset
+    jmp wfend
 wcallcopy:
     push dx
     push si
@@ -1119,11 +1192,7 @@ save:
     ;save files
     pop cx ;file number
     mov bx, 0xffff ;becomes 0
-saveloop:
-    ;get size of file
-    inc bx
-    cmp byte [es:bx], 0h ;end of file
-    jne saveloop
+    call lloop ;go to last byte
     push bx
     and bx, 0x1ff
     cmp bx, 0x1ff ;if true the file is full
@@ -1153,7 +1222,48 @@ edit:
     push cx ;file number, for save
     mov cx, bx ;number of chars in file
     jmp wedit
-    
+
+delete:
+    ;erases files
+    call readfiles
+    shl al, 1h ;*2 = "number of files" to delete
+dloop:
+    mov byte [es:bx], 0h ;set as 0h, since if the first byte is a 0h the file is "empty"
+    add bh, 2h ;next file
+    cmp bh, al ;all files erased
+    jne dloop
+    ;write files back
+    shr al, 1h ;return to old value
+    mov ah, 3h
+    xor bx, bx
+    int 13h
+    jmp input
+
+lloop:
+    ;read [es:bx] until 0h char
+    inc bx
+    cmp byte [es:bx], 0h ;end of file
+    jne lloop
+    ret
+link:
+    ;link files together, (concatenate)
+    call readfile ;get last file of first bulk
+    push cx ;first file number
+    call lloop
+    call readfiles2 ;use bx value
+    call lloop
+    ;write files
+    pop cx ;file number
+    mov ah, 3h
+    or bx, 0x1ff ;go to last byte
+    mov byte [es:bx], 0h ;mark end of file
+    inc bh
+    mov al, bh
+    shr al, 1h ;set al to right number of files to save
+    xor bx, bx ;reset buffer
+    int 13h
+    jmp input
+
 copystart:
     mov di, 0x8080 ;source and destination disk (hard drive)
     jmp copy
@@ -1434,27 +1544,27 @@ info:
     mov ax, 0x1200
     mov es, ax
     mov cl, 1h ;changes later
-    mov dl, 0x80
-iloop:
-    ;read file
     call setfolder
-    mov ax, 0x201
+    mov dl, 0x80
+    mov ax, 0x23f ;read all files
     xor bx, bx
     int 13h
-    and cl, 0x3f ;cear upper bits (due to setfolder)
+    mov cl, 1h
+iloop:
+    ;read file
     cmp byte [es:bx], 0h ;is empty?
     je ilend
     ;output filenum
     mov ch, cl
     call xtox
     mov ax, 0xe2e ;.
-    mov bx, 0x1ff
+    or bx, 0x1ff ;end of file
     cmp byte [es:bx], 0h ;check if file is full
     je iskip
     mov al, 0x3a ;: use different char
 iskip:
     int 10h ;output char
-    xor bx, bx ;reset
+    and bx, 0xfe00 ;start of file
     mov ch, 0xa ;char counter
 iwloop:
     ;write chars
@@ -1463,12 +1573,10 @@ iwloop:
     jge iw
     mov al, 0x2a ;*
 iw:
-    mov ah, 0xe ;print char
     int 10h
     inc bl
     dec ch
     jne iwloop ;10 characters
-iwend:
     mov ax, 0xe20 ;space
     int 10h
     int 10h
@@ -1477,71 +1585,37 @@ iwend:
     jne ilend ;number of columns, 5
     xor di, di
 ilend:
+    mov bl, cl
+    shl bx, 9h
     inc cl
     cmp cl, 0x40 ;last file
     je input
     jmp iloop ;read next file
 
-zero:
-    ;erases all files in folder (rmdir)
-    mov ax, 0xe21 ;!
-    int 10h
-    ;get y for yes
-    mov ah, 0h
-    int 16h
-    cmp al, 0x79 ;y
-    jne input
-    mov ax, 0x1200
-    mov es, ax
-    xor bx, bx
-    mov dl, 80h
-    mov cl, 1h ;file number
-zloop:   
-    ;read
-    call setfolder
-    mov ax, 0x201
-    int 13h
-    and cl, 0x3f ;clear upper bits, due to setfolder
-zread:
-    cmp byte [es:bx], 0h ;file is already "empty"
-    je zend
-    mov byte [es:bx], 0h ;set as 0h, since if the first byte is a 0h the file is "empty"
-    ;save file
-    call setfolder
-    mov ax, 0x301
-    int 13h
-    and cl, 0x3f ;clear upper bits
-zend:
-    inc cl
-    cmp cl, 0x40 ;end of folder
-    jne zloop
-    jmp input
-
 search:
     ;search for string in folder (find)
     call sget ;input string
-sstart:
     call enter
+    ;read all files
     mov ax, 0x1200
     mov es, ax
     xor bx, bx
     mov cl, 1h ;will change
-sloop:
     call setfolder
-    xor di, di ;reset
-    ;read
     mov dl, 80h
-    xor bx, bx ;must be here! reset
-    mov ax, 0x201
+    xor bx, bx
+    mov ax, 0x23f ;all files
     int 13h
-    and cl, 0x3f ;clear upper bits
+    mov cl, 1h
+sloop:
+    xor di, di ;reset, [gs:di] stores string
 scomp:
-    mov al, [es:bx] ;get char from file
-    cmp al, 0h ;end of file
-    je sfile
     mov dl, [gs:di] ;compare with search word
     cmp dl, 0xd ;end of search word
     je sfind
+    mov al, [es:bx] ;get char from file
+    cmp al, 0h ;end of file
+    je seof
     cmp al, dl
     jne snot ;not equal words
     inc bx
@@ -1549,30 +1623,34 @@ scomp:
     jmp scomp
 sfind:
     ;print file number
-    mov ch, cl
+    push bx
+    push bx
+    shr bx, 9h
+    inc bl
+    mov ch, bl
     call xtox
     mov ax, 0xe2e ;.
     int 10h
+    pop bx
+    and bx, 0x1ff ;clear upper bits
+    ;output index of string found location
     mov ch, bh
     call xtox
     mov ch, bl
     call xtox
-    mov al, 0x20
+    mov al, 0x20 ;space
     int 10h
-    jmp sfile
+    pop bx
+seof:
+    ;end of file
+    or bx, 0x1ff
 snot:
     inc bx ;next char
-    cmp bx, 0x200 ;check if file end
-    jge sfile
-    xor di, di ;reset
-    jmp scomp
-sfile:
-    inc cl
-    cmp cl, 0x40
-    je input
+    cmp bh, 0x7e ;check if last file
+    jge input
     jmp sloop
 
-drive:
+os:
     ;display largest folder
     mov ah, 8h ;get drive info
     mov dl, 0x80
@@ -1705,16 +1783,19 @@ aMA:
     je aMAG
     jmp aerror
 aMAE:
-    mov dword [gs:di], 0x078a26
+    mov word [gs:di], 0x8a26
     add di, 2h
+    mov byte [gs:di], 0x7
     jmp acend
 aMAF:
-    mov dword [gs:di], 0x048a64
+    mov word [gs:di], 0x8a64
     add di, 2h
+    mov byte [gs:di], 0x4
     jmp acend
 aMAG:
-    mov dword [gs:di], 0x058a65
+    mov word [gs:di], 0x8a65
     add di, 2h
+    mov byte [gs:di], 0x5
     jmp acend
 aME:
     cmp al, 0x45 ;mov es, ax
@@ -1727,8 +1808,9 @@ aMEE:
     inc di
     jmp acend
 aMEA:
-    mov dword [gs:di], 0x078826
+    mov word [gs:di], 0x8826
     add di, 2h
+    mov byte [gs:di], 0x7
     jmp acend
 aMF:
     cmp al, 0x46 ;mov fs, ax
@@ -1741,8 +1823,9 @@ aMFF:
     inc di
     jmp acend
 aMFA:
-    mov dword [gs:di], 0x048864
+    mov word [gs:di], 0x8864
     add di, 2h
+    mov byte [gs:di], 0x4
     jmp acend
 aMG:
     cmp al, 0x47 ;mov gs, ax
@@ -1755,8 +1838,9 @@ aMGG:
     inc di
     jmp acend
 aMGA:
-    mov dword [gs:di], 0x058865
+    mov word [gs:di], 0x8865
     add di, 2h
+    mov byte [gs:di], 0x5
     jmp acend
 aA:
     ;ADD
