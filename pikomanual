@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.5
+PIKOBRAIN MANUAL v1.5.1
 Hanzlu (2019-2021)
 ---------------------
 
@@ -154,7 +154,11 @@ with binary files that have been created by the assembler. The colon makes it po
 s, search:
 Enter a character, word or string. Press enter to start the search. Backspace can be used.
 Pikobrain will display which files within the current folder that has that content within them, as well as the (char index) location of the string in the file.
-This can also be used as a way of writing text within the input, to make quick notes.
+When entering a string, you can write * characters to mark that that specific character can be any character. This also works (only) for f1 and f2 in the text editor.
+After having pressed s for the command, you can press f1 to search for the last string you searched for. It is also possible to write some characters and then press f1,
+then the characters you typed will replace the ones in the previous char, and the rest of the characters of the previous string will remain.
+This f1 function can also be used in the text editor when using the f1 and f3 functions there. You press f1 after having pressed f1 to search for the same string.
+The s command can also be used as a way of writing text within the input, to make quick notes.
 **The search buffer is about 125 characters wide. The same buffer is used for f1 in the text editor.
 
 FILES
@@ -206,6 +210,7 @@ In order to search for the next occurance, press f2. This will search for the ne
 If a string is not found when using f1 or f2, the cursor will stop at the end of the bulk.
 You can replace a string by using f1 to specify the string that will be replaced, and then f3 to type the string to replace it with. All instances of the "f1-string"
 will be replaced with the "f3-string", and the bulk will be re-read.
+Read about the s command to learn about an additional f1 and * functionalities to use.
 **The "f1" and "f3" strings are stored in separate buffer of a size of ~125 bytes. The strings you enter should not be longer.
 
 In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
@@ -241,14 +246,15 @@ Same as memory, but asks for a second argument, which is a two digit hexadecimal
 
 p, place:
 Allows you to write a byte to a certain location in a file.
-Enter the file number, then a four digit hexadecimal number for the location (offset/index), then the byte to write as a two digit hexadecimal number.
-If you wish to write multiple consecutive bytes, you can press space, and write another, then space again if you yet need to write more and so on.
-To exit, press any key besides space after you've written the byte value, and you'll return to the input.
+Enter the file number, then a four digit hexadecimal number for the location (offset/index). A newline is outputted.
+Then the current byte at the location is outputted. Now input the byte to write as a two digit hexadecimal number.
+If you wish to write multiple consecutive bytes, you can press enter, and write another, then enter again if you yet need to write more and so on.
+To exit, press any key besides enter after you've written the byte value, and you'll return to the input.
 Pressing backspace will cause the changes not to be saved. Check the CUSTOMIZATION section to read about changing screen colors.
-The command can be used to recover files, that has been deleted by the z or w commands.
+The command can be used to recover files, that has been deleted by the d or w commands.
 
 l, link:
-Concatenates (links, puts) two bulks together as one.
+Concatenates two bulks together as one, and stores as many files as is necessary to cover the new bulk.
 Enter the last file of the first bulk. Enter the first file and number of file of the second bulk as four digit hexadecimal numbers as usual.
 The command does not work if the first bulk/file is empty or completely full. Use c command for those cases.
 
@@ -392,7 +398,8 @@ Pikobrain uses some parts of the RAM for its own needs. This is a list of segmen
 0x1000:0x0 - 0x1000:0x13ff, OS machine code
 0x1140:0x0 - 0x1140:0x0001, Random number generator
 0x1141:0x0 - 0x1147:0x000f, Search and find buffer
-0x1148:0x0 - 0x114f:0x000f, Second search and find buffer
+0x1148:0x0 - 0x114e:0x000f, Second search and find buffer
+0x114f:0x0 - 0x114f:0x000f, Third string buffer
 0x1150:0x0 - 0x11f0:0x00ff, Copy buffer
 0x1200:0x0 - 0x1a00:0x0000, Normal file read buffer (maximum size, depends on size of bulk or program)
 0x1200:0x0 - 0x3000:0x0000, Assembler buffer (this buffer may be altered except for the file read buffer above)

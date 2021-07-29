@@ -7,19 +7,18 @@
 ;constants instead of magic numbers
 CTRL_BREAK equ 0x13db ;location of ctrl+break handler [0x1000:CTRL_BREAK]
 OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h (read)
-OS_SIZEd equ 0x13fd ;3rd last byte in OS, for file operations
-OS_SIZEf equ 0x13ff ;last byte in OS
 
 RANDOM_BUFFER equ 0x1140
 SEARCH_BUFFER equ 0x1141
 SEARCH_BUFFER2 equ 0x1148
+SEARCH_BUFFER3 equ 0x114f
 COPY_BUFFER equ 0x1150
 
 
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.5", 0xd, 0xa
+    db "Pikobrain v1.5.1", 0xd, 0xa
     db "new", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
@@ -92,7 +91,12 @@ jmppb:
     jmp 0x1000:0x0200 ;jump to Pikobrain main
 
     ;fill up space
-    times 509-($-$$) db 0h
+    times 506-($-$$) db 0h
+
+    ;folder number
+    db 0h ;upper 2 bits cl -- track
+    dw 0h ;0x1000:last_byte
+
     db 1h ;1=installation=false, 0=installation=true
     dw 0xaa55
 
@@ -242,7 +246,7 @@ setfolder:
     and cl, 0x3f ;clear upper bits, cl is file number
     mov ax, 0x1000
     mov fs, ax
-    mov si, OS_SIZEd
+    mov si, 0x1fa ;folder number location
     mov al, [fs:si]
     shl al, 6h ;into right position
     add cl, al
@@ -260,7 +264,7 @@ folder:
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
-    mov si, OS_SIZEf ;last OS byte
+    mov si, 0x1fc ;last number in folder number
     call filenum
     cmp cl, 0x69 ;double press tab to select current folder
     je fsame
@@ -330,6 +334,8 @@ sword:
     ;get char
     mov ah, 0h
     int 16h
+    cmp ah, 0x3b ;f1, quit writing, for use of same string
+    je ssend 
     cmp al, 8h ;backspace
     jne swordcon
     dec di
@@ -533,12 +539,15 @@ place:
     call filenum
     mov bl, cl ;value in bx
 ploop:
+    call enter
+    mov ch, [es:bx] ;output current value
+    call xtox
     call filenum ;get value to place
     mov [es:bx], cl ;place
     inc bx
     mov ah, 0h
     int 16h
-    cmp al, 0x20 ;if space, write more
+    cmp al, 0xd ;if enter, write more
     je ploop
     ;write updated file
     xor bx, bx
@@ -553,7 +562,7 @@ read:
     ;read file as ASCII chars
     call readfiles
 rstart: ;used by wdel, wgoto
-    mov ax, SEARCH_BUFFER2
+    mov ax, SEARCH_BUFFER3
     mov gs, ax
     xor di, di ;gs:di location of cmp buffer, due to wfind this is set to 0h
     mov byte [gs:di], 0h
@@ -573,6 +582,8 @@ readcon:
     mov ah, 0xe ;print char
     int 10h
     inc bx
+    cmp byte [gs:di], 0x2a ;* for text editor find anychar
+    je readeq
     cmp al, [gs:di] ;equal chars
     je readeq
     xor di, di
@@ -1050,11 +1061,11 @@ wrloop:
     xor di, di
 wrcomp:
     ;compare chars between buffers  
-    cmp byte [es:bx], 0h ;end of file
-    je wdel
     mov al, [gs:di]
     cmp al, 0xd
     je wrfound
+    cmp byte [es:bx], 0h ;end of file
+    je wdel
     cmp al, [es:bx]
     jne wrnot
     ;equal
@@ -1384,7 +1395,7 @@ kfloat:
     ;divide and save the remainder
     mov ax, 0xe2e ;.
     int 10h
-    mov bl, 0h ;counter
+    mov bl, 4h ;counter
     mov ax, dx
     xor dx, dx
     div cx
@@ -1406,8 +1417,7 @@ kfloop:
     pop ax
     sub ax, dx ;"long division" subtraction
     mov dx, ax
-    inc bl
-    cmp bl, 4h ;4 digits
+    dec bl
     jne kfloop
     jmp input
 kanswer:
@@ -1528,7 +1538,7 @@ info:
     ;ouput folder number in hex
     mov ax, 0x1000
     mov fs, ax
-    mov si, OS_SIZEd
+    mov si, 0x1fa ;folder number location
     mov ch, [fs:si]
     call xtox
     inc si
@@ -1539,7 +1549,6 @@ info:
     call xtox
     call enter
     ;output files 
-    mov di, 5h ;column counter
     ;get file info in folder
     mov ax, 0x1200
     mov es, ax
@@ -1574,16 +1583,13 @@ iwloop:
     mov al, 0x2a ;*
 iw:
     int 10h
-    inc bl
+    inc bl ;next char
     dec ch
     jne iwloop ;10 characters
     mov ax, 0xe20 ;space
     int 10h
     int 10h
     int 10h ;3 times, will cause a newline
-    dec di
-    jne ilend ;number of columns, 5
-    xor di, di
 ilend:
     mov bl, cl
     shl bx, 9h
@@ -1613,11 +1619,14 @@ scomp:
     mov dl, [gs:di] ;compare with search word
     cmp dl, 0xd ;end of search word
     je sfind
+    cmp dl, 0x2a ;* any character
+    je scont
     mov al, [es:bx] ;get char from file
     cmp al, 0h ;end of file
     je seof
     cmp al, dl
     jne snot ;not equal words
+scont:
     inc bx
     inc di
     jmp scomp
@@ -2594,7 +2603,7 @@ run:
 runcall: ;used in ctrl+break handler
     jmp input 
 
-    times 5083-($-$$) db 0h ;fill space
+    times 5086-($-$$) db 0h ;fill space
 
 ;***********
 ;CTRL+BREAK
@@ -2622,9 +2631,6 @@ breakcon:
     push ax
     sub sp, 2h ;next stack item
     jmp breakloop
-
-    db 0h ;upper 2 bits cl -- track
-    dw 0h ;0x1000:last_byte
 
 ;commands to assemble and make into flp file linux + NASM
 ;nasm -f bin -o myfirst.bin myfirst.asm
