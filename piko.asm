@@ -5,7 +5,7 @@
 ;***********
 
 ;constants instead of magic numbers
-CTRL_BREAK equ 0x13db ;location of ctrl+break handler [0x1000:CTRL_BREAK]
+CTRL_BREAK equ 0x13de ;location of ctrl+break handler [0x1000:CTRL_BREAK]
 OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h (read)
 
 RANDOM_BUFFER equ 0x1140
