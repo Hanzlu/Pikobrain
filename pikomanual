@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.5.1
+PIKOBRAIN MANUAL v1.5.2
 Hanzlu (2019-2021)
 ---------------------
 
@@ -12,7 +12,7 @@ Pikobrain is not a system like others. For that reason it is necessary to read t
 In this document I have attempted to present how Pikobrain works to potential users, without getting too technical into the inner workings of Pikobrain.
 I am sure that someone who wants to understand how Pikobrain works in detail will be able to read the source code, and find answers there. You can check out the
 TECHNICAL section of this document to get some information of how some special things have been implemented in Pikobrain.
-Lines starting with ** in this document are technical details.
+Lines starting with ** in this document are technical details. Lines starting with ! are warnings.
 
 TABLE OF CONTENTS:
 1.INTRODUCTION
@@ -21,6 +21,7 @@ TABLE OF CONTENTS:
     A.FOLDERS
     B.FILES
 4.CODING
+    A.EXAMPLE
 5.TROUBLES
 6.OS MEMORY USAGE
 7.CUSTOMIZATION
@@ -32,7 +33,7 @@ INTRODUCTION
 
 Pikobrain is a very small operating system of only 5kB, which still provides the user with all the basic commands to edit files, code, calculate and so on. 
 The operating system is completely written in 16-bit assembly language (NASM) and uses the hexadecimal number system. The keyboard is automatically US character set.
-The whole operating system has been written in the Linux Mint Text Editor, perhaps it is for that reason the Pikobrain text editor has the same name.
+The whole operating system has been written in the Linux Mint Text Editor (until v1.5.1), perhaps it is for that reason the Pikobrain text editor has the same name.
 
 Pikobrain was originally intended to be an operating system in which I could use a low-level esoteric programming language I had made (ACL). However, those ideas where
 forgotten the more I coded Pikobrain. Pikobrain was initially an operating system written with the intention to have a source code which was as small as possible. This
@@ -65,19 +66,19 @@ it can not work when booting from the hard drive.
 Booting from a floppy (or with piko.flp) will also allow you to use commands when the screen color changes, however all operations will be done on the hard drive
 and the j command will NOT work.
 When Pikobrain has been installed (when the screen changes color), you can remove the USB or floppy and reboot from the hard drive.
-In case the screen does not change color, the installation has been insuccessfull. Contact Hanzlu if this happens.
+In case the screen does not change color, the installation has been insuccessfull. Contact Hanzlu if this happens. QEMU is known not to work with "vanilla" Pikobrain.
 
 COMMANDS
 --------
 
 Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter. You always use lowercase letters
 when entering commands, since lowercase and uppercase letters are interpreted as different. Most commands also take arguments. Arguments are inserted as two digit (or
-more digits) hexadecimal numbers. Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). If you want to quit writing a command (perhaps you wrote the wrong number)
-you can press the backspace button. This will bring you back to the "input" where you enter commands. **This clears the stack.
+more digits) hexadecimal numbers. Hexadecimal numbers are ALWAYS written in upper case such as B8. When pressing a command key it will not be displayed on the screen, however the arguments are displayed (most of the time). If you want to quit writing a command (perhaps you wrote the wrong number) you can press the backspace button. This will bring you back to the "input" where you enter commands.
+**This clears the stack. You'll have to retype the command again. Pikobrain does not store input in a buffer, it reads it directly, so backspace completely quits.
 Here is a list of the commands you can use within Pikobrain and how they work:
 
 t, time:
-Displays the current time in 'yyyy/mm/dd hh:mm:ss' format. Does not automatically adjust time for daylight saving.
+Displays the current time in 'yyyy/mm/dd hh:mm:ss' format. Does not automatically adjust time for daylight saving. Change the clock via the BIOS.
 
 enter, enter:
 Newline and carriage return as expected.
@@ -92,7 +93,7 @@ b, back:
 Moves the cursor to the top left of the screen
 
 The following commands take multi-digit numbers as arguments. They are always of a certain lenght which means that if you want to enter the number 1, you will have to
-write 01 for example, by adding zero(s) in the begining.
+write 01 for example, by adding zero(s) in the beginning.
 
 k, kalculator:
 Enter a four digit hexadecimal number. A newline will automatically be written. Enter a second four digit hexadecimal number. Then press a number key for operation
@@ -106,10 +107,10 @@ according to this list:
 7=or
 8=xor
 9=not
-0=floating point division, will return a four digit hexadecimal number, which is the floating point part of the division
+0=floating point division, will return a four digit hexadecimal number, which is the floating point part of the division (check out . command)
 6-9 are bitwise operations.
 After entering an operation you should be displayed with a four digit hexadecimal number which is the answer. The calculator can not have answer larger than FFFF
-and does not support negative numbers directly (unsigned).
+and does not support negative numbers directly (unsigned). **Use the 'not and add 1' method to deal with negative results.
 
 h, hex:
 Enter a four digit hexadecimal number. You will be displayed with the number converted into decimal.
@@ -119,7 +120,7 @@ Enter a 5 digit decimal number (max 65535). You will be displayed with the numbe
 
 . (dot), float:
 Enter a 4 digit hexadecimal number. This is the floating point part of a number (without the .). For example 1/3 = 0.5555 in hexadecimal floating point. 
-If you enter the value 5555 you'll convert the value into a decimal floating point number, 0.333333. 
+If you enter the value 5555 you'll convert the value into a decimal floating point number: 0.333328. **This is what Pikobrain outputs in this case
 This will be displayed as a dot followed by six digits. This command is not 100% accurate in all digits, often the first 4 digits are accurate.
 
 o, os:
@@ -133,20 +134,20 @@ FOLDERS
 You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access a maximum
 of a little more than 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
-You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0A are reserved for the operating system, do not edit them if you do 
+You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0A are reserved for the operating system. Do not edit them if you do 
 not know what you are doing, as they contain the OS machine code.
 When inserting a folder number as an argument you can use some shortcuts. By pressing two times on the tab button you will select the current folder.
 This will output two circles. By pressing two times on the h letter key you select the 'home' folder (000000).
 By pressing semi-colon twice you'll be able to insert a two digit number to alter only the last two digits of the folder number.
-When you use these shortcuts you must only do two (or four) key presses rather than six. It is also possible to press backspace to cancel writing the folder number.
+When you use these shortcuts you must only do two (or four) key presses rather than six.
 
 f, folder:
 Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits. You can use "shortcuts". 
 
 i, info:
 Displays information about the current folder you are within. Displays the folder number followed by the files within the folder. Only files that do not have an ASCII 
-00 (hex) character as its first character will be displayed. 
-Files are displayed with their number, followed by a dot and the first 10 characters of the file. The first 10 characters can therefore be used as a file name.
+00 (hex) character as its first character will be displayed. Since such files are seen as empty. 
+Files are displayed with their number, followed by a dot and the first 10 characters of the file. The first 10 characters can therefore be used as a "file name".
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
 If a file do not have an ASCII 00 (null) character as its last character, the dot will be a : (colon) instead to show that the file is full. This will not always work 
 with binary files that have been created by the assembler. The colon makes it possible to spot "bulks".
@@ -157,15 +158,16 @@ Pikobrain will display which files within the current folder that has that conte
 When entering a string, you can write * characters to mark that that specific character can be any character. This also works (only) for f1 and f2 in the text editor.
 After having pressed s for the command, you can press f1 to search for the last string you searched for. It is also possible to write some characters and then press f1,
 then the characters you typed will replace the ones in the previous char, and the rest of the characters of the previous string will remain.
-This f1 function can also be used in the text editor when using the f1 and f3 functions there. You press f1 after having pressed f1 to search for the same string.
-The s command can also be used as a way of writing text within the input, to make quick notes.
+As an example of this. If you searched for 'hello' the first time, and then the next time you type HE and then press f1; the string you will search for is 'HEllo', as it
+will reuse the rest of the characters in the old string which you did not overwrite.
+The s command can also be used as a way of writing text within the input, to make notes in the input.
 **The search buffer is about 125 characters wide. The same buffer is used for f1 in the text editor.
 
 FILES
 
-In order to access a file you enter a file number after a file manipulation command. A file number is normally in the range 01-3F (hex) (check the o command). If the d
-command does not return 3F as its second number, this might make commands work weirdly. Please contact Hanzlu if this is the case.
-Files in Pikobrain are automatically 512 bytes long, however the Text Editor allows you to edit multiple such files at once as one large file, called a bulk.
+In order to access a file you enter a file number after a file manipulation command. A file number is in the range 01-3F (hex). If the o command does not return 3F as 
+its second number, this (might) make commands work weirdly. Please contact Hanzlu if this is the case.
+Files in Pikobrain are automatically 512 bytes long, however the Text Editor allows you to edit multiple such files at once as one large file, called a "bulk".
 
 w, write:
 Enter a file number. You can now write to a file. The w and e commands enter the "Text Editor" which is explained now:
@@ -180,12 +182,13 @@ Arrows and backspace can in other words not scroll, enter can.
 In order to scroll you should use page up and page down keys. They will scroll one line.
 Using page down to scroll everything away, will cause bugs. Page up will not scroll if the page is at the top already.
 The cursor will remain by the same character when you scroll.
+Scrolling so much that the cursor disappears causes bugs. Try pressing the home key, or if necessary the delete key to continue writing.
 
 The home key, will move the cursor to the top left of the screen. If the cursor disappears you should press the home key, then the editor may work again.
 The end key, will move the cursor to the bottom right. If the cursor disappears this key will not work.
 
 The insert key, will scroll the whole file to the top.
-The delete key, will scroll the whole file to the bottom (re-read).
+The delete key, will scroll the whole file to the bottom (re-read whole file).
 On laptops the insert and delete keys may be on the numpad. Or they'll be next to the function keys. Then you may have to hold the fn key before pressing ins or del.
 
 In order to copy text which you can paste later, you press the tab key. Pikobrain remembers the character at which the cursor is. When you press the tab key a
@@ -195,7 +198,7 @@ cursor was closer to the top left of the screen (start of file) when you pressed
 To paste text you type the '|' key (next to enter, and shift). This will paste the characters between your first and second tab presses. It's possible to copy-paste
 between files.
 The screen will not scroll when you paste. You can press delete to re-read the file and get things working properly if you paste so much. Or use home key.
-**The copy buffer is 5.5kB large, exceeding this limit will cause terrible bugs probably.
+**The copy buffer is 5.5kB large, exceeding this limit will probably cause terrible bugs.
 
 You can write special characters (ASCII 00-FF). Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Some characters in the range 00-1F might be 'invisible' (cause bugs) and not be printed expectedly, but will be stored.
 Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input', and not save.
@@ -205,12 +208,14 @@ This number shows you the index of the character the cursor is on. Press any key
 By pressing f4 and typing a four digit hexadecimal number, the cursor will go to the character at that index. You should not press backspace while typing the number,
 this will make your return to the input. If the index you type is larger than the size of the file content, you will be moved to the end of the file.
 
-In order to search for a string in the bulk, press f1. Enter a string. The cursor will jump to the first instance of the string in the bulk.
+In order to search for a string in the bulk, press f1. Enter a string and press enter. The cursor will jump to the first instance of the string in the bulk.
 In order to search for the next occurance, press f2. This will search for the next occurance, starting from the location of the cursor.
 If a string is not found when using f1 or f2, the cursor will stop at the end of the bulk.
 You can replace a string by using f1 to specify the string that will be replaced, and then f3 to type the string to replace it with. All instances of the "f1-string"
 will be replaced with the "f3-string", and the bulk will be re-read.
-Read about the s command to learn about an additional f1 and * functionalities to use.
+Read about the s command to learn about an additional f1 and * functionalities that can be used in the text editor.
+You can not use * characters to specify any character when using f3, the * character will be seen as a * character. But you can, when just searching with f1 and f2.
+When pressing f3 you can press f1 to use the old "f3-string" again when replacing.
 **The "f1" and "f3" strings are stored in separate buffer of a size of ~125 bytes. The strings you enter should not be longer.
 
 In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
@@ -221,9 +226,9 @@ files (as a bulk). The text editor will save as many files as necessary to cover
 **If the last file in the bulk is full (contains 512 bytes of actual text) then the text editor will save one more file, which will be "invisible" since it starts with
 a null character.
 
-You should not fill a whole row with characters, as that causes bugs. Use enter.
-A line in your file can not end with a space, then backspace stops working properly.
-**Pressing tab an odd number of times and then leaving the Text Editor will make the copy buffer reset. Unless pressing backspace after pressing \, then
+!You should not fill a whole row with characters, as that causes bugs. Use enter.
+!A line in your file can not end with a space, then backspace stops working properly.
+**!Pressing tab an odd number of times and then leaving the Text Editor will make the copy buffer reset. Unless you've pressed backspace after pressing \, then
 this will not happen.
 
 e, edit:
@@ -234,7 +239,7 @@ In order to just read a file you'll also use the e command. You can press escape
 
 d, delete:
 Enter a file number and the number of consecutive files to delete. In each file, a null character will be placed in the beginning. This is how Pikobrain checks if a
-file is empty, not existing. The place command can be used to recover deleted files.
+file is empty, not existing. The p command can be used to recover deleted files.
 In order to delete a file you can also write to a file using the w command, and immediately save. It is also possible to copy empty files into the files to delete.
 
 m, memory:
@@ -246,16 +251,17 @@ Same as memory, but asks for a second argument, which is a two digit hexadecimal
 
 p, place:
 Allows you to write a byte to a certain location in a file.
-Enter the file number, then a four digit hexadecimal number for the location (offset/index). A newline is outputted.
+Enter the file number, then a four digit hexadecimal number for the location (offset/index) of the byte to alter. A newline is outputted.
 Then the current byte at the location is outputted. Now input the byte to write as a two digit hexadecimal number.
 If you wish to write multiple consecutive bytes, you can press enter, and write another, then enter again if you yet need to write more and so on.
 To exit, press any key besides enter after you've written the byte value, and you'll return to the input.
-Pressing backspace will cause the changes not to be saved. Check the CUSTOMIZATION section to read about changing screen colors.
-The command can be used to recover files, that has been deleted by the d or w commands.
+!Pressing backspace will cause the changes not to be saved. Check the CUSTOMIZATION section to read about changing screen colors.
+The command can be used to recover files, that has been deleted.
 
 l, link:
 Concatenates two bulks together as one, and stores as many files as is necessary to cover the new bulk.
-Enter the last file of the first bulk. Enter the first file and number of file of the second bulk as four digit hexadecimal numbers as usual.
+Enter the last file of the first bulk. Enter the first file number and the number of files of the second bulk.
+So something like l152004 to link file 15 with 4 files starting from file 20.
 The command does not work if the first bulk/file is empty or completely full. Use c command for those cases.
 
 c, copy:
@@ -265,11 +271,14 @@ Enter the destination folder's number (6 digit hexadecimal number or a shortcut)
 j, jump:
 The j (jump) command can only be used when booting from a USB (or CD?). This command allows you to copy files between the USB and hard drive. First enter if the USB or hard drive will serve as source. Pressing 0 specifies the USB, and pressing 1 would be the hard drive. Then enter the rest of the arguments the same way as
 the c command works: file number, number of files, (a 'w' will be displayed), a folder number (shortcuts possible), and finally the destination file number.
-In order to get files onto the USB you could do ' cat <yourfile> >> piko.bin ' and then boot from piko.bin. This may not properly install Pikobrain, so you may have
-to re-assemble piko.bin (with nasm) before actually booting. This will still make <yourfile> remain on the USB.
+Linux: In order to get files onto the USB you could do ' cat <yourfile> >> piko.bin ' and then put the piko.bin file with the added content onto the USB and boot.
+This may not properly install Pikobrain, so you may have to re-assemble piko.bin (with nasm) and use dd command to write it onto the USB before actually booting again.
+This will still make <yourfile> remain on the USB.
 Since Pikobrain doesn't format the USB using any filesystem, it is unlikely an ordinary operating system could notice files put on the USB from Pikobrain.
 However, it is possible to read sectors from the USB using the 'head' command on Linux. In order to read file 0B of the USB and place it into a file 'test.txt', do:
-'sudo head -c 5632 /dev/sdb | tail -c 512 > test.txt '
+'sudo head -c 5632 /dev/sdb | tail -c 512 > test.txt ' In this case 5632 specifies the file since 0x0B * 512 = 5632.
+Example of the command: j00B01[w]hh20 The w is outputted by Pikobrain, and should not be written by the user.
+The command above would move file 0B from the USB into the home folder's file 20 on the hard drive.
 
 CODING
 ------
@@ -352,10 +361,10 @@ the registers that are affected by using the macro:
 WA, converts al from ASCII to HEX. If al is 42 (ascii B) for example it becomes 0B as that is hexadecimal. [al]
 WE, prints a newline. [ax]
 WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x11fd-0x11ff. [ax, cl, fs, si]
-WG, allows the user to write a string to the search buffer at 0x1180:0x0 (gs:di points to it). [ax, gs, di]
+WG, allows the user to write a string to the search buffer at 0x1141:0x0 (gs:di points to it). [ax, gs, di]
 WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
 WN, let's the user input a two digit hex number which is stored in cl. The user cannot press backspace as this will make the program end and jump back to the input. [ax, cl]
-WR, returns a random number into al. The other used registers also receive "random" numbers, but are "useless" for looping random numbers. [ax, fs, si]
+WR, returns a random number into al. [ax, fs, si]
 WS, is used to set dh, ch, and cl before a file operation (int 13h). It takes the values inserted when using WF, and are all set to 0 at bootup. [ax, cx, dh, fs, si]
 WW, works like the n command in the input, clears the screen. [nothing]
 WX, outputs the value in ch as ASCII. If ch is 34 hex for example, it will be printed as "34". [ax, ch]
@@ -375,13 +384,28 @@ where the binary code will be placed. If your program is large, the machine code
 Errors
 If you get an error you will see some extra stuff before an 'a' character.
 If you see a four digit number and an 'e', this means you have a syntax error. The number shows the index of the character that the error is at in the source code.
-If you see a label name followed by a dot, this means you have a label error. The name is the label that causes the error.
-If you also see an 'a' character this means the program as been assembled (but with errors), and you should enter a destination file.
+If you see a label name followed by a dot, this means you have a label error. The name is the name of the label that causes the error.
+If you also see an 'a' character this means the program as been assembled (but with errors), and you should enter a destination file, or you can just press backspace.
 
 r, run:
 The r command allows you to run binary files such as assembled code. Enter the file number of the first binary file in the program. Enter a second two digit hexadecimal number for how man consecutive files shall be read. The instruction pointer will make a call to the user's program. Therefore it is necessary to include the E 
 mneumonics in the code, so that control is given back to the operating system when the program is finished.
 If the program is left in a graphics video mode, it may be necessary to press n to return to text mode.
+
+EXAMPLE
+Here is an example program that outputs all numbers between 00 and 63 (hex):
+
+MN CH 00   ;CH = 00
+.LOOP.     ;MAKE A LOOP LABEL
+UC         ;PUSH CX SINCE CH IS CHANGED BY WX
+WX         ;CALL THE WX (XTOX) MACRO WHICH OUTPUTS CH AS A HEXADECIMAL NUMBER
+PC         ;POP CX TO GET BACK THE VALUE OF CH
+H CH       ;INCREASE CH
+CN CH 64   ;COMPARE CH TO 64
+JN LOOP.   ;IF NOT EQUAL: JUMP BACK TO THE LOOP LABEL
+E          ;END THE PROGRAM
+!A program can not end with a comment, since a comment ends with an enter.
+In the above case, the assembler would continue reading stuff beyond the code in order to find a newline character.
 
 TROUBLES
 --------
@@ -409,8 +433,9 @@ The effective (excluding the list of commands) part of the bootloader is about 8
 
 CUSTOMIZATION
 -------------
-By using the p command to alter the value at location 0022 in file 02 of the OS files, you can change the colors of the screen, using BIOS color attributes.
-(This (and other memory values in this file) is not always up to date. Use v command with 023E as arguments for color altering)
+By using the p command to alter the value at location 0021 in file 02 of the OS files, you can change the colors of the screen, using BIOS color attributes.
+(This (and other arbitrary values in this manual) is not always up to date. Use v command with 023E as arguments for color altering)
+After using the p command to change the color, you should restart the machine to get the actual effect.
 This value can also be changed from within the source code in piko.asm.
 
 **VERSIONS
@@ -436,9 +461,9 @@ and rather comming up with the solutions myself.
 Random Numbers:
 The generator can be described using this pseudo-code:
 int random() {
-    y -= time.tick(); y and x are in the random generator buffer
-    x -= y;             y is subtracted by the current tick, and then x is subtracted by y
-    return x;           y and x placed into ax, x in al
+    y -= time.tick()    y and x are taken from the random generator buffer
+    x -= y              y is subtracted by the current tick, and then x is subtracted by y
+    return x            y and x placed into ax, x in al
 }
 
 Floating Point:
@@ -446,10 +471,11 @@ The calculator uses long division to get a four digit floating point value as an
 The . (float) command converts the hexadecimal float to decimal float by using the equation:
 x/16=y/10 => y = (x*10)/16 ,where x is the hexadecimal value and y is the decimal
 Using mul will result in the result being placed into DX AX. By multiplying the hexadecimal value by 10 the "overflow" that does not fit in AX is placed into DX.
-If you were to divide DX AX by 16 you would move the value in DX to AX, so it is possible to directly output the value in DX (DL) as a decimal value.
+If you were to divide DX AX by 16 you would move the value in DX to AX, so Pikobrain directly output the value in DX (DL) as a decimal value.
 
 Assembler:
 Uses two stages to directly create binary files.
 The first stage directly converts assembly to binary code, by writing the opcodes and values depending on register combinations. It stores jmps and labels in their
 own buffers which include the label names and their location in the machine code.
 The second stage goes through the list of jmps, and matches them with the labels, calculating the right lenght of the jmps and writing these to the machine code.
+Jumps are automatically 16-bit, so no near jumps.

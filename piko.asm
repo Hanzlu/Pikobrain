@@ -18,7 +18,7 @@ COPY_BUFFER equ 0x1150
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.5.1", 0xd, 0xa
+    db "Pikobrain v1.5.2", 0xd, 0xa
     db "new", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
@@ -561,6 +561,9 @@ ploop:
 read:
     ;read file as ASCII chars
     call readfiles
+    mov bl, al ;number of files
+    shl bx, 9h ;*200h, buffer size
+    mov byte [es:bx], 0h ;mark end of buffer, due to full files
 rstart: ;used by wdel, wgoto
     mov ax, SEARCH_BUFFER3
     mov gs, ax
@@ -582,7 +585,7 @@ readcon:
     mov ah, 0xe ;print char
     int 10h
     inc bx
-    cmp byte [gs:di], 0x2a ;* for text editor find anychar
+    cmp byte [gs:di], 0x2a ;* for text editor find any char
     je readeq
     cmp al, [gs:di] ;equal chars
     je readeq
@@ -1612,7 +1615,6 @@ search:
     xor bx, bx
     mov ax, 0x23f ;all files
     int 13h
-    mov cl, 1h
 sloop:
     xor di, di ;reset, [gs:di] stores string
 scomp:
