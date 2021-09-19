@@ -1,4 +1,4 @@
-PIKOBRAIN MANUAL v1.5.2
+PIKOBRAIN MANUAL v1.5.3
 Hanzlu (2019-2021)
 ---------------------
 
@@ -13,6 +13,7 @@ In this document I have attempted to present how Pikobrain works to potential us
 I am sure that someone who wants to understand how Pikobrain works in detail will be able to read the source code, and find answers there. You can check out the
 TECHNICAL section of this document to get some information of how some special things have been implemented in Pikobrain.
 Lines starting with ** in this document are technical details. Lines starting with ! are warnings.
+£ shows sections containing values depending on the size of Pikobrain. The £ is only a reminder to myself to check those sections when updating this file.
 
 TABLE OF CONTENTS:
 1.INTRODUCTION
@@ -30,10 +31,10 @@ TABLE OF CONTENTS:
 
 INTRODUCTION
 ------------
-
+£
 Pikobrain is a very small operating system of only 5kB, which still provides the user with all the basic commands to edit files, code, calculate and so on. 
 The operating system is completely written in 16-bit assembly language (NASM) and uses the hexadecimal number system. The keyboard is automatically US character set.
-The whole operating system has been written in the Linux Mint Text Editor (until v1.5.1), perhaps it is for that reason the Pikobrain text editor has the same name.
+I have only used text editors for coding Pikobrain, currently using Kate in OpenSUSE which is a good one. All source code is in the piko.asm file.
 
 Pikobrain was originally intended to be an operating system in which I could use a low-level esoteric programming language I had made (ACL). However, those ideas where
 forgotten the more I coded Pikobrain. Pikobrain was initially an operating system written with the intention to have a source code which was as small as possible. This
@@ -52,8 +53,9 @@ osdev.org wiki forums.
 INSTALLATION
 ------------
 
-Pikobrain should have access to 200kB of RAM. Hard disk space should be between at least a few kB up to about 8GB (it cannot access more). Keyboard and screen are also 
-essential, as well as a USB/floppy port for booting on real hardware. The CPU should be i386 or newer (fs and gs registers are used), and allow for 20-bit segmentation.
+Pikobrain should have access to >200kB of RAM. Hard disk space should be between at least a few kB. It can access up to at most 8GB, but you can have larger drives.
+Keyboard and screen are also essential, as well as a USB/floppy port for booting on real hardware.
+The CPU should be i386 or newer (fs and gs registers are used), and allow for 20-bit segmentation.
 The machine also needs to have BIOS. I expect that Pikobrain will run on most ordinary PCs from about 1990-2015, and possibly in some cases beyond.
 
 In VirtualBox the piko.flp file can be used to boot the OS from a virtual floppy disk.
@@ -130,7 +132,7 @@ First number is the highest folder number you can enter. This number should alwa
 Second number is the highest file you can access within a single folder. If this number is not 3F, you should contact Hanzlu, as files operations will not work.
 
 FOLDERS
-
+£
 You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive, as Pikobrain can only access a maximum
 of a little more than 8GB of hard disk space. Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
@@ -197,8 +199,7 @@ When you would press the tab key for the second time you can use shift+tab inste
 cursor was closer to the top left of the screen (start of file) when you pressed shift+tab.
 To paste text you type the '|' key (next to enter, and shift). This will paste the characters between your first and second tab presses. It's possible to copy-paste
 between files.
-The screen will not scroll when you paste. You can press delete to re-read the file and get things working properly if you paste so much. Or use home key.
-**The copy buffer is 5.5kB large, exceeding this limit will probably cause terrible bugs.
+£**The copy buffer is 5.5kB large, exceeding this limit will probably cause terrible bugs.
 
 You can write special characters (ASCII 00-FF). Press the \ key and type a two digit hexadecimal number for a character's ASCII representation. This allows you access to characters outside of the ASCII 20-7F scope. Some characters in the range 00-1F might be 'invisible' (cause bugs) and not be printed expectedly, but will be stored.
 Notice, that you should not cancel the writing of the two digit number by pressing backspace, as this will actually make you return to the 'input', and not save.
@@ -218,6 +219,8 @@ You can not use * characters to specify any character when using f3, the * chara
 When pressing f3 you can press f1 to use the old "f3-string" again when replacing.
 **The "f1" and "f3" strings are stored in separate buffer of a size of ~125 bytes. The strings you enter should not be longer.
 
+Lines may not end with spaces, as this causes the cursor to work weirdly. If you press the f5 key all spaces before newlines will be removed.
+
 In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved. In order to cancel writing you
 press the escape key. This should display an arrow.
 **The copy buffer is reset when you save or exit. Copied strings will still remain in the buffer, so you can paste into other files.
@@ -226,8 +229,12 @@ files (as a bulk). The text editor will save as many files as necessary to cover
 **If the last file in the bulk is full (contains 512 bytes of actual text) then the text editor will save one more file, which will be "invisible" since it starts with
 a null character.
 
+If the cursor start being weird, do these things until things work ok again:
+Press f5 to remove spaces before newlines. Press home to move the cursor to top left. Press delete to re-read the file. Press ` to save the file.
+Press ctrl+break to return to the input.
+
 !You should not fill a whole row with characters, as that causes bugs. Use enter.
-!A line in your file can not end with a space, then backspace stops working properly.
+!A line in your file can not end with a space, then backspace stops working properly. Read about f5 key above.
 **!Pressing tab an odd number of times and then leaving the Text Editor will make the copy buffer reset. Unless you've pressed backspace after pressing \, then
 this will not happen.
 
@@ -268,35 +275,40 @@ c, copy:
 Enter a file number for the source file. Enter the number of files to read as a two digit hexadecimal number. A 'w' character should be displayed.
 Enter the destination folder's number (6 digit hexadecimal number or a shortcut). Enter the destination file's number. You will be moved to the destination folder.
 
-j, jump:
+j, jump: £
 The j (jump) command can only be used when booting from a USB (or CD?). This command allows you to copy files between the USB and hard drive. First enter if the USB or hard drive will serve as source. Pressing 0 specifies the USB, and pressing 1 would be the hard drive. Then enter the rest of the arguments the same way as
 the c command works: file number, number of files, (a 'w' will be displayed), a folder number (shortcuts possible), and finally the destination file number.
 Linux: In order to get files onto the USB you could do ' cat <yourfile> >> piko.bin ' and then put the piko.bin file with the added content onto the USB and boot.
 This may not properly install Pikobrain, so you may have to re-assemble piko.bin (with nasm) and use dd command to write it onto the USB before actually booting again.
 This will still make <yourfile> remain on the USB.
 Since Pikobrain doesn't format the USB using any filesystem, it is unlikely an ordinary operating system could notice files put on the USB from Pikobrain.
-However, it is possible to read sectors from the USB using the 'head' command on Linux. In order to read file 0B of the USB and place it into a file 'test.txt', do:
+However, it is possible to read sectors from the USB using the 'head' command on Linux. In order to read file 0C of the USB and place it into a file 'test.txt', do:
 'sudo head -c 5632 /dev/sdb | tail -c 512 > test.txt ' In this case 5632 specifies the file since 0x0B * 512 = 5632.
-Example of the command: j00B01[w]hh20 The w is outputted by Pikobrain, and should not be written by the user.
-The command above would move file 0B from the USB into the home folder's file 20 on the hard drive.
+Example of the command: j00C01[w]hh20 The w is outputted by Pikobrain, and should not be written by the user.
+The command above would move file 0C from the USB into the home folder's file 20 on the hard drive.
 
 CODING
 ------
 
-**The OS often uses a buffer starting at 0x1200:0x0 (20 bit segmentation), including when loading machine code into RAM with the r command. Thus, you should not use
+**The OS uses a buffer starting at 0x1200:0x0 (20 bit segmentation) for files, including when loading machine code into RAM with the r command. Thus, you should not use
 that buffer in your own programs as you will alter the code your program is running from.
+I have used '<code>' to mark NASM assembly code, to show how Pikoasm translates to NASM.
 
 Pikobrain has a limited assembler. The assembly language is a custom version of assembly language called Pikoasm. The code is written in consecutive files within single folders. The assembler stops when it reaches a null character (ASCII 0). The code is written in upper case.
-Mneumonics are 1-3 characters wide. Mneumonics which can take two registers as arguments and jump mneumonics are typically 2 chracters wide. 
+Mneumonics are 1-4 characters wide. Mneumonics which can take two registers as arguments and jump mneumonics are typically 2 chracters wide. 
 If a mneumonic can either use a register or immediate value as source, this must be indicated in the mneumonic. For example if you want to move bx into ax, you must 
 specify that the source is a register by using the MR (move register) mneumonic. On the other hand, if the source is a value (and all values are hexadecimal) such as 10 
 (hex) you must specify this by using the mneumonic MN (move number). Like this: MN AL 10
 If you for example want to move the number 1 to ax you must add pending zeros: MN AX 0001 (ax is 16 bit)
-In normal assembly language a comma is used between destination and source. This is not required in the Pikobrain version. It is also not required to use newlines
-between various mneumonics, but most of the time spaces should be used to separate mneumonics and arguments from each other.
+The correct syntax of a statement is as follows:
+<OPERATION><SPACE><ARGUMENT><SPACE><ARGUMENT> (Operationa and Arguments are defined as Elements)
+Essentially, use spaces between each element of the statement. Each element should not include any special characters.
+After a statement it is suggested to write a newline. However, it is possible to have multiple statements on one line. I recommend using a comma to separate statements.
+Example: MN AX 0001,AR AX AX
+The assembler is only occasionally strict about syntax. But to avoid syntax errors, use the recommended methods of spaces and newlinses/commas.
 All the basic registers (AX, AH, AL, BX, BH..) are usable. You can also use SI and DI, however they are called SX and TX and are 16 bit.
-Segmentation is possible using es:bx, fs:si and gs:di. Read the 'Other Commands' part for this.
-In order to stop a program, you should use the E (end) mneumonic. Otherwise the program may never stop, or do really weird things.
+Read about segmentation in the 'Other Commands' part.
+In order to stop a program, you should use the E (end) mneumonic. Otherwise the program may never stop, or do really weird things. E returns to the input.
 Here is a list of 2 character mneumonics in Pikobrain (2 arguments, destination and source) (each require either an R or an N at the end such as MR or MN, not just M):
 M, move
 A, add
@@ -305,15 +317,18 @@ B, both (and)
 O, or
 X, xor
 C, compare
+Example: CN DL 3E ('cmp dl, 0x3e')
 
 Here is a list of 2 character mneumonics taking two arguments; a register and a number (byte) and the mneumonic ends with either R (right) or L (left):
 Z, (shift), ZR = shr, ZL = shl
 Q, (rotate), QR = ror, QL = rol
 Notice that a 16-bit register will only take an 8-bit value as argument.
+Example: ZR BX 01 ('shr bx 1h')
 
 Here is a list of 2 character mneumonics taking only a number (byte) as argument and where the mneumonic ends with either I (in) or O (out):
 G, GI = in, GO = out
 notice that the al register is automatically used so you do not specify a register, just the number (port).
+Example: GI 64 ('in al, 0x64')
 
 Here is a list of 1 character mneumonics in Pikobrain (one argument). Mneumonics marked with a * can only have 16 bit registers as arguments (and work in a special 
 way), those marked with a / can only take a value (byte) as argument, those with a \ can only take registers:
@@ -342,29 +357,32 @@ JB, jump below
 The conditional jumps works like JM regarding the labels 
 
 Segmentation:
-Segmentation is possible with es:bx, fs:si and gs:di:
-MEE, mov es, ax
-MEA, mov [es:bx], al
-MAE, mov al, [es:bx]
-MFF, mov fs, ax
-MFA, mov [fs:si], al
-MAF, mov al, [fs:si]
-MGG, mov gs, ax
-MGA, mov [gs:di], al
-MAG, mov al, [gs:di]
+Segmentation is possible with using combinations of es, fs, gs with bx, sx (si), tx (di)
+In these mneumonics all registers es, fs, gs, bx, sx, dx are represented by the first letter.
+The al register is automatically used as source/destination. ax is used when setting a segment register such as 'mov es, ax'.
+The segmentation mneumonics are 3-4 letter combinations. All begin with M.
+If you wish to set a segment register such as 'mov es, ax' do:
+MIE (The M specifies mov, I specifies into and E specifies es)
+In order to move the value of al into a segment such as 'mov [fs:di], al' do:
+MFTA (F specifies fs and T specifies tx (di)) (In here the A is actually not required, but suggested for readability)
+In order to move the content of a segment into al such as 'mov al, [gs:bx]' do:
+MAGB (Here A must be specified, G for gs, and B for bx)
+The combinations of segment registers and registers above are only as examples. You can combine those registors in any way as long as it follows the given order.
 **User made programs should not do segmentation near 0x1200:0x0 as that is where the OS loads the program.
 Check the OS memory usage section in the bottom of this file.
 
-Macros:
+Macros: £
 To simplify some of the programming, you can access some of the functions Pikobrain call by using the following mneumonics. The list describes the functions and lists
 the registers that are affected by using the macro:
 WA, converts al from ASCII to HEX. If al is 42 (ascii B) for example it becomes 0B as that is hexadecimal. [al]
 WE, prints a newline. [ax]
-WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x11fd-0x11ff. [ax, cl, fs, si]
+WF, same as the f command from the input. Let's the user insert a folder number and stores at 0x1000:0x1fa-0x1fc. [ax, cl, fs, si]
 WG, allows the user to write a string to the search buffer at 0x1141:0x0 (gs:di points to it). [ax, gs, di]
 WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
 WN, let's the user input a two digit hex number which is stored in cl. The user cannot press backspace as this will make the program end and jump back to the input. [ax, cl]
-WR, returns a random number into al. [ax, fs, si]
+WO, Before calling the macro, set es:bx to point to a free buffer. The macro asks the user for a file number and number of files, and then reads those into the buffer
+[ax, cx, dx]
+WR, returns a random number into al. [ax, fs, si] (ah may also be random)
 WS, is used to set dh, ch, and cl before a file operation (int 13h). It takes the values inserted when using WF, and are all set to 0 at bootup. [ax, cx, dh, fs, si]
 WW, works like the n command in the input, clears the screen. [nothing]
 WX, outputs the value in ch as ASCII. If ch is 34 hex for example, it will be printed as "34". [ax, ch]
@@ -373,7 +391,7 @@ necessary to re-assemble programs after having updated Pikobrain to a new versio
 
 Other commands:
 E, End. Will return control back to the OS (** with a far return). This is necessary to end a program, and you can have multiple in one program.
-;, comment. Allows you to type anything until the next newline character without affecting the assembler process. Notice that the comment end with a newline.
+;, comment. Allows you to type anything until the next newline character without affecting the assembler process. Comments end with a new line or eof.
 ", string. Prints any text until the next " character. Basically a print function. You must be in a text video mode in order for it to work. Alters the value of AX.
 
 a, assembly: In order to assemble assembly code you press 'a' for the assembly command. Then enter the file number of the first file in the program. Then how many files
@@ -404,8 +422,6 @@ H CH       ;INCREASE CH
 CN CH 64   ;COMPARE CH TO 64
 JN LOOP.   ;IF NOT EQUAL: JUMP BACK TO THE LOOP LABEL
 E          ;END THE PROGRAM
-!A program can not end with a comment, since a comment ends with an enter.
-In the above case, the assembler would continue reading stuff beyond the code in order to find a newline character.
 
 TROUBLES
 --------
@@ -417,7 +433,7 @@ user friendliness and remove unwanted consequences. The OS has not been built wi
 Ctrl+Alt+Delete can be used to restart the machine, but it doesn't always work. You turn off Pikobrain by just turning off your computer.
 
 **OS MEMORY USAGE
------------------
+-----------------£
 Pikobrain uses some parts of the RAM for its own needs. This is a list of segments it uses and their use:
 0x1000:0x0 - 0x1000:0x13ff, OS machine code
 0x1140:0x0 - 0x1140:0x0001, Random number generator
@@ -433,8 +449,8 @@ The effective (excluding the list of commands) part of the bootloader is about 8
 
 CUSTOMIZATION
 -------------
-By using the p command to alter the value at location 0021 in file 02 of the OS files, you can change the colors of the screen, using BIOS color attributes.
-(This (and other arbitrary values in this manual) is not always up to date. Use v command with 023E as arguments for color altering)
+By using the p command to alter the value at location 001B in file 02 of the OS files, you can change the colors of the screen, using BIOS color attributes.
+(This (and other arbitrary memory values in this manual) is not always up to date. Use v command with 023E as arguments for color altering)
 After using the p command to change the color, you should restart the machine to get the actual effect.
 This value can also be changed from within the source code in piko.asm.
 
@@ -459,12 +475,7 @@ This includes information of how certain things have been implemented in Pikobra
 and rather comming up with the solutions myself.
 
 Random Numbers:
-The generator can be described using this pseudo-code:
-int random() {
-    y -= time.tick()    y and x are taken from the random generator buffer
-    x -= y              y is subtracted by the current tick, and then x is subtracted by y
-    return x            y and x placed into ax, x in al
-}
+Uses the current clock tick to update ah, which updates al. Then ax is rotated left one step.
 
 Floating Point:
 The calculator uses long division to get a four digit floating point value as answer.

@@ -6,7 +6,7 @@
 
 ;constants instead of magic numbers
 CTRL_BREAK equ 0x13de ;location of ctrl+break handler [0x1000:CTRL_BREAK]
-OS_SECTORS equ 0x20a ;size of OS in sectors, 2 is for int 13h (read)
+OS_SECTORS equ 0x20b ;size of OS in sectors, 2 is for int 13h (read)
 
 RANDOM_BUFFER equ 0x1140
 SEARCH_BUFFER equ 0x1141
@@ -14,11 +14,10 @@ SEARCH_BUFFER2 equ 0x1148
 SEARCH_BUFFER3 equ 0x114f
 COPY_BUFFER equ 0x1150
 
-
 jmp bootloader
 
     ;help file
-    db "Pikobrain v1.5.2", 0xd, 0xa
+    db "Pikobrain v1.5.3", 0xd, 0xa
     db "new", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
@@ -105,13 +104,10 @@ jmppb:
 ;PIKOBRAIN
 ;**********
 
-    ;setup random number generator buffer
-    mov ax, RANDOM_BUFFER
+    ;setup copy buffer
+    mov ax, COPY_BUFFER
     mov es, ax
     xor bx, bx
-    mov byte [es:bx], 0h
-    ;setup copy buffer
-    inc bh ;+100h 0x1140->0x1150
     mov byte [es:bx], 0h
 
 callnew:
@@ -310,16 +306,9 @@ random:
     mov fs, ax
     xor si, si
     mov ax, [fs:si]
-    cmp al, 0h ;check if random value been generated
-    jne rcon
-    ;setup random number generator
-    mov al, dl
-    mov ah, dh ;subtracter
-    jmp rend
-rcon:
     sub ah, dl ;update number = generate
     sub al, ah ;al is random number returned
-rend:
+    rol ax, 1h
     mov [fs:si], ax ;store
     pop dx
     pop cx
@@ -375,7 +364,7 @@ input:
     cmp al, 0xd  ;enter
     je callenter  
     cmp al, 0x62 ;b
-    je back
+    je callback
     cmp al, 0x74 ;t
     je time
     cmp al, 0x6d ;m
@@ -448,12 +437,15 @@ arrowend:
     int 10h
     jmp input
 
+callback:
+    call back
+    jmp input
 back:
     ;move cursor to top left
     mov ah, 2h
     xor dx, dx
     int 10h
-    jmp input
+    ret
 
  
 ;*********
@@ -755,6 +747,8 @@ wgetchar:
     je wreplace
     cmp ah, 0x3e ;f4
     je wgoto
+    cmp ah, 0x3f ;f5
+    je wspace
     ;output character typed
     mov ah, 0xe
     int 10h
@@ -913,17 +907,19 @@ wdownstart:
     je wgetchar
 wdown:
     ;arrow down, move to end of next line
-    cmp byte [es:di], 0xd ;search for newline
+    mov al, [es:di]
+    cmp al, 0xd ;search for newline
     je wdown2
-    cmp byte [es:di], 0h ;end of file
+    cmp al, 0h ;end of file
     je wgetchar
     call wright2
     jmp wdown
 wdown2:
     call wright2
-    cmp byte [es:di], 0xd ;newline
+    mov al, [es:di]
+    cmp al, 0xd ;newline
     je wgetchar
-    cmp byte [es:di], 0h ;end of file
+    cmp al, 0h ;end of file
     je wgetchar
     jmp wdown2
 wenter:
@@ -962,9 +958,7 @@ wpg:
     ;rewrite screen
     push dx
     push di
-    xor dx, dx
-    mov ah, 2h ;cursor to top left
-    int 10h
+    call back ;cursor top left
     mov di, si
     call wtype ;rewrite screen
     pop di
@@ -985,9 +979,7 @@ wdel:
     mov di, bx ;last char
     jmp wgetchar
 whome:
-    mov ah, 2h ;move cursor to top left
-    xor dx, dx
-    int 10h
+    call back ;move cursor to top left
     mov di, si ;set to first byte
     jmp wgetchar
 wend:
@@ -1002,9 +994,10 @@ wendrowstart:
     call wendrow
     jmp wgetchar
 wendrow:
-    cmp byte [es:di], 0h ;end of file
+    mov al, [es:di]
+    cmp al, 0h ;end of file
     je wendend
-    cmp byte [es:di], 0xd ;newline
+    cmp al, 0xd ;newline
     je wendend
     inc di
     mov bh, 0h
@@ -1116,12 +1109,40 @@ wgoto:
     pop ax
     mov [es:bx], al ;reset
     jmp wfend
+wspace:
+    ;remove spaces before newlines
+    mov cx, di ;updates when erasing
+    xor di, di
+wsloop:
+    inc di
+    mov al, [es:di]
+    cmp al, 0h ;end of file
+    je wsend
+    cmp al, 0xd ;newline
+    jne wsloop
+wsagain:
+    dec di
+    cmp byte [es:di], 0x20 ;if space delete
+    je wsspace
+wscon:
+    inc di ;next char
+    jmp wsloop
+wsspace:
+    call wbloopstart ;erase
+    cmp cx, di ;only if cursor is past erased char should cx be decreased
+    jbe wsagain
+    dec cx
+    jmp wsagain ;check if multiple spaces 
+wsend:
+    mov di, cx ;update
+    jmp wgetchar
 wcallcopy:
+    ;copy/cut
     push dx
     push si
     call wcopy
     pop si
-    call new
+    call new ;due to cut
     push di
     mov di, si
     call wtype ;update screen
@@ -1182,24 +1203,37 @@ wpasteloop:
     je wpastend
     mov ah, 0xe ;move cursor according to char
     int 10h
+    cmp al, 0xd ;newline
+    je wpsi
+wpcon:
     call wloopstart ;save char in buffer
     inc si
     jmp wpasteloop
+wpsi:
+    mov bh, 0h
+    mov ah, 3h
+    int 10h
+    cmp dh, 0x18 ;check if last line
+    jne wpcon
+    mov dx, si
+    pop si
+    call rsiloop ;move si
+    push si
+    mov si, dx
+    jmp wpcon
 wpastend:
     pop si
     mov bh, 0h
     mov ah, 3h ;get cursor
     int 10h
     push dx
-    xor dx, dx
-    mov ah, 2h ;cursor to top left
-    int 10h
+    call back ;cursor top left
     push di
     mov di, si
     call wtype ;update screen
     pop di    
     pop dx
-    mov ah, 2h
+    mov ah, 2h ;reset cursor
     int 10h 
     jmp wgetchar
 save:
@@ -1240,7 +1274,7 @@ edit:
 delete:
     ;erases files
     call readfiles
-    shl al, 1h ;*2 = "number of files" to delete
+    shl al, 1h ;*2 = "number of files" to delete for bx
 dloop:
     mov byte [es:bx], 0h ;set as 0h, since if the first byte is a 0h the file is "empty"
     add bh, 2h ;next file
@@ -1773,85 +1807,69 @@ aMR:
     mov dh, 0x88 ;opcode for MR (or 89)
     jmp acombstart
 aMS:
-    dec bx ;due to aloop
-    mov al, [es:bx] ;get char
     cmp dl, 0x41 ;MA
-    je aMA
-    cmp dl, 0x45 ;ME
-    je aME
-    cmp dl, 0x46 ;MF
-    je aMF
-    cmp dl, 0x47 ;MG
-    je aMG
+    jne aMX
+    mov dx, 0x8a26 ;mov al, [xx:xx]
+aMAstart:
+    cmp ah, 0x45 ;MAE.
+    je aMA0
+    cmp ah, 0x46 ;MAF.
+    je aMA1
+    cmp ah, 0x47 ;MAG.
+    je aMA2
     jmp aerror
-aMA:
-    ;char in al
-    cmp al, 0x45 ;MAE
-    je aMAE
-    cmp al, 0x46 ;MAF
-    je aMAF
-    cmp al, 0x47 ;MAG
-    je aMAG
+    ;inc dl 0x26
+aMA2:
+    inc dl
+aMA1:
+    add dl, 0x3e
+aMA0:
+    mov [gs:di], dx ;save
+    add di, 2h
+    mov dl, 0x4 ;last byte for register
+    cmp al, 0x42 ;B
+    je aM2
+    cmp al, 0x53 ;S
+    je aM0
+    cmp al, 0x54 ;T
+    je aM1
     jmp aerror
-aMAE:
-    mov word [gs:di], 0x8a26
-    add di, 2h
-    mov byte [gs:di], 0x7
+    ;inc dl
+aM2:
+    add dl, 2h
+aM1:
+    inc dl
+aM0:
+    mov [gs:di], dl
     jmp acend
-aMAF:
-    mov word [gs:di], 0x8a64
-    add di, 2h
-    mov byte [gs:di], 0x4
-    jmp acend
-aMAG:
-    mov word [gs:di], 0x8a65
-    add di, 2h
-    mov byte [gs:di], 0x5
-    jmp acend
-aME:
-    cmp al, 0x45 ;mov es, ax
-    je aMEE
-    cmp al, 0x41 ;mov [es:bx], al
-    je aMEA
+aMX:
+    ;mov [xx:xx], al
+    cmp dl, 0x49 ;I= mov xx, ax
+    je aMI
+    mov al, ah ;since segmentations comes earlier
+    mov ah, dl
+    mov dx, 0x8826 ;mov [xx:xx], al
+    jmp aMAstart
+aMI:
+    ;mov seg.reg, ax
+    ;check which seg.reg
+    cmp ah, 0x45 ;E
+    je aMIE
+    cmp ah, 0x46 ;F
+    je aMIF
+    cmp ah, 0x47 ;G
+    je aMIG
     jmp aerror
-aMEE:
+aMIE:
     mov word [gs:di], 0xc08e
-    inc di
-    jmp acend
-aMEA:
-    mov word [gs:di], 0x8826
-    add di, 2h
-    mov byte [gs:di], 0x7
-    jmp acend
-aMF:
-    cmp al, 0x46 ;mov fs, ax
-    je aMFF
-    cmp al, 0x41 ;mov [fs:si], al
-    je aMFA
-    jmp aerror
-aMFF:
+    jmp aMend
+aMIF:
     mov word [gs:di], 0xe08e
-    inc di
-    jmp acend
-aMFA:
-    mov word [gs:di], 0x8864
-    add di, 2h
-    mov byte [gs:di], 0x4
-    jmp acend
-aMG:
-    cmp al, 0x47 ;mov gs, ax
-    je aMGG
-    cmp al, 0x41 ;mov [gs:di], al
-    je aMGA
-    jmp aerror
-aMGG:
+    jmp aMend
+aMIG:
     mov word [gs:di], 0xe88e
+aMend:
     inc di
-    jmp acend
-aMGA:
-    mov word [gs:di], 0x8865
-    add di, 2h
-    mov byte [gs:di], 0x5
     jmp acend
 aA:
     ;ADD
@@ -2303,6 +2321,8 @@ aW:
     je aWH
     cmp al, 0x4e ;fileNum
     je aWN
+    cmp al, 0x4f ;readfiles2 Open
+    je aWO
     cmp al, 0x52 ;random
     je aWR
     cmp al, 0x53 ;setfolder
@@ -2330,6 +2350,9 @@ aWH:
 aWN:
     add cx, filenum
     jmp aWend
+aWO:
+    add cx, readfiles2
+    jmp aWend
 aWR:
     add cx, random
     jmp aWend
@@ -2344,7 +2367,7 @@ aWX:
     jmp aWend
 aWend:
     sub cx, di
-    sub cx, 2h
+    sub cx, 2h ;bacause of the size of this call
     mov word [gs:di], cx
     inc di
     jmp acend
@@ -2433,11 +2456,14 @@ aLabelend:
     push si
     mov si, dx ;return to normal
     inc bx
-    jmp aconv 
+    jmp aconv
 aComment:
     ;commenting
     inc bx
-    cmp byte [es:bx], 0xd ;newline = end of comment
+    mov al, [es:bx]
+    cmp al, 0h ;end of file
+    je aconv
+    cmp al, 0xd ;newline = end of comment
     jne aComment
     jmp aconv
 aE:
@@ -2545,9 +2571,10 @@ asaveloop:
     jmp asaveloop
 ascompend:
     ;jump past label
-    cmp byte [es:bx], 0x2e;. end of name
+    mov al, [es:bx]
+    cmp al, 0x2e;. end of name
     je ascend
-    cmp byte [es:bx], 0h ;label not found
+    cmp al, 0h ;label not found
     je alerror
     inc bx
     jmp ascompend
