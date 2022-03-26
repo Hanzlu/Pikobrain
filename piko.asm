@@ -5,19 +5,19 @@
 ;***********
 
 ;constants instead of magic numbers
-CTRL_BREAK equ 0x13de ;location of ctrl+break handler [0x1000:CTRL_BREAK]
+CTRL_BREAK equ 0x15de ;location of ctrl+break handler [0x1000:CTRL_BREAK]
 OS_SECTORS equ 0x20b ;size of OS in sectors, 2 is for int 13h (read)
 
-RANDOM_BUFFER equ 0x1140
-SEARCH_BUFFER equ 0x1141
-SEARCH_BUFFER2 equ 0x1148
-SEARCH_BUFFER3 equ 0x114f
-COPY_BUFFER equ 0x1150
+RANDOM_BUFFER equ 0x1160
+SEARCH_BUFFER equ 0x1161
+SEARCH_BUFFER2 equ 0x1168
+SEARCH_BUFFER3 equ 0x116f
+COPY_BUFFER equ 0x1170
 
 jmp bootloader
 
-    ;help file
-    db "Pikobrain v1.5.3", 0xd, 0xa
+    ;"help file" list of commands
+    db "Pikobrain v1.5.4", 0xd, 0xa
     db "new", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
@@ -111,8 +111,8 @@ jmppb:
     mov byte [es:bx], 0h
 
 callnew:
-    call new
-    jmp input
+    call new  ;call function, jump to main loop
+    jmp input ;-->
 new:
     ;clear screen
     pusha
@@ -132,6 +132,8 @@ new:
 ;**********
 ;FUNCTIONS
 ;**********
+;common functions
+;some used as macros in pikoasm
 
 callenter:
     call enter
@@ -162,8 +164,7 @@ readfiles:
     mov es, ax
     xor bx, bx
 readfiles2: ;used by link
-    ;first file
-    call filenum
+    call filenum ;first file
     push cx ;store number
     call filenum ;number of files
     mov dl, cl ;store for al
@@ -192,6 +193,8 @@ xtox:
     int 10h
     ret
 
+;the next two convert between ascii-chars and numerical values
+;such as F=46h <-> 0xf
 atohex:
     ;ascii-hex to hex
     sub al, 30h
@@ -234,11 +237,11 @@ filenum:
 filenquit:
     ;exit writing, clear stack, go to input
     mov sp, 0x1000
-    jmp input ;if used as Pikoasm macro, this will cancel program
+    jmp input ;if a pikoasm program gets here it will terminate
 
 setfolder:
     ;set folder to current folder number, for int 13h
-    ;folder number stored in the end of the OS code
+    ;folder number stored in the end of the bootloader code
     and cl, 0x3f ;clear upper bits, cl is file number
     mov ax, 0x1000
     mov fs, ax
@@ -247,7 +250,7 @@ setfolder:
     shl al, 6h ;into right position
     add cl, al
     inc si
-    mov dh, [fs:si]
+    mov dh, [fs:si] ;set values
     inc si
     mov ch, [fs:si]
     ret
@@ -256,7 +259,7 @@ callfolder:
     call folder
     jmp input
 folder:
-    ;change head and track=folder number
+    ;change (head and track i.e.) folder number
     ;dh and ch (cl) for int 13h
     mov ax, 0x1000
     mov fs, ax
@@ -272,7 +275,7 @@ folder:
     push cx
     call filenum
     push cx
-    call filenum
+    call filenum ;i.e. 6 digits total
     ;write values, to change folder number
     mov [fs:si], cl
     dec si
@@ -293,7 +296,7 @@ flast:
     ;only change last two digits of folder number
     call filenum
     mov [fs:si], cl
-fsame: ;do nothing, use current folder number
+fsame: ;use current folder number
     ret
 
 random:
@@ -323,12 +326,11 @@ sword:
     ;get char
     mov ah, 0h
     int 16h
-    cmp ah, 0x3b ;f1, quit writing, for use of same string
+    cmp ah, 0x3b ;f1, quit writing, for use of old string input
     je ssend 
     cmp al, 8h ;backspace
     jne swordcon
     dec di
-    mov byte [gs:di], 0h
     mov ah, 0xe ;print backspace
     int 10h
     mov ax, 0xa20 ;space
@@ -336,7 +338,7 @@ sword:
     jmp sword
 swordcon:
     mov [gs:di], al ;store char in buffer
-    ;if enter=end
+    ;if enter: end
     cmp al, 0xd ;if enter, end writing
     je ssend
     ;output
@@ -352,6 +354,7 @@ ssend:
 ;******
 ;INPUT
 ;******
+;main loop
 
 input:
     ;get commands
@@ -406,7 +409,7 @@ input:
     cmp al, 0x72 ;r
     je run
 
-    ;else arrows
+    ;else check arrows
 arrow:
     mov al, ah
     ;get cursor location
@@ -451,6 +454,7 @@ back:
 ;*********
 ;COMMANDS
 ;*********
+;'programs'
 
 time:
     ;get date
@@ -483,20 +487,20 @@ time:
     int 10h
     mov ch, dh
     call xtox
-    jmp input	
+    jmp input
 
 memory:
     ;read file in hex
     call readfile
-    mov dl, 0h ;due to visible, show m command running not v
+    mov dl, 0h ;due to visible, show that m command running, not v
 menter:
     mov dh, 0h ;column counter
     call enter
 mbyte:
     mov ch, [es:bx] ;get content of byte
-    cmp ch, dl ;if value == visible command value, or 0h when m command
+    cmp ch, dl ;if value == <visible command value> or 0h when m command
     je mvisible
-    call xtox ;output as hex
+    call xtox ;else output as hex
 mcon:
     mov ax, 0xe20 ;space
     int 10h
@@ -509,7 +513,7 @@ mcon:
     jne mbyte
     jmp menter
 mvisible:
-    mov ax, 0xe2e ;.
+    mov ax, 0xe2e ;.. to mark v command value
     int 10h
     int 10h
     jmp mcon
@@ -529,7 +533,7 @@ place:
     call filenum
     mov bh, cl
     call filenum
-    mov bl, cl ;value in bx
+    mov bl, cl ;store in bx
 ploop:
     call enter
     mov ch, [es:bx] ;output current value
@@ -539,9 +543,9 @@ ploop:
     inc bx
     mov ah, 0h
     int 16h
-    cmp al, 0xd ;if enter, write more
+    cmp al, 0xd ;if enter: write more
     je ploop
-    ;write updated file
+    ;else save updated file
     xor bx, bx
     pop cx
     call setfolder
@@ -551,10 +555,29 @@ ploop:
     jmp input
 
 read:
+;OK the text editor is a mess so I'll list what registers are used for
+;ax = general purpose
+;bx = general purpose if necessary; bh=0h (1st screen) whenever video interrupts are used
+;cx = general purpose ;is pushed as it stores the file number
+;dx = stores cursor location
+;si = index of the character in top left, needed for scrolling
+;di = index of current character the cursor is located on
+;es:di holds the actual text
+;fs:   holds copy buffer
+;gs:   holds search buffer
+
+;first the file is read and written to the screen
+;when a char is typed:
+    ;the screen is rewritten from the cursor forward
+;when a special function is used:
+    ;various levels of (if any) rewriting of the screen takes place
+
     ;read file as ASCII chars
+    ;de facto part of text editor
     call readfiles
-    mov bl, al ;number of files
-    shl bx, 9h ;*200h, buffer size
+rlink: ;used by wlink
+    mov bl, al ;al=number of files
+    shl bx, 9h ;*200h-> buffer size in bytes
     mov byte [es:bx], 0h ;mark end of buffer, due to full files
 rstart: ;used by wdel, wgoto
     mov ax, SEARCH_BUFFER3
@@ -563,9 +586,9 @@ rstart: ;used by wdel, wgoto
     mov byte [gs:di], 0h
 readstart: ;used by wfind
     xor bx, bx
-    xor si, si ;index of 1st char on screen in editor
+    xor si, si ;si always stores the index of the first char on the screen i.e. top left
     call new ;due to text editor
-readstart2: ;used by wfnext, don't clear screen
+readstart2: ;used by wfnext, doesn't clear screen
     push cx ;store file number
 nextread:
     mov al, [es:bx] ;get char
@@ -577,13 +600,14 @@ readcon:
     mov ah, 0xe ;print char
     int 10h
     inc bx
-    cmp byte [gs:di], 0x2a ;* for text editor find any char
+    cmp byte [gs:di], 0x2a ;* for text editor find any char (joker)
     je readeq
     cmp al, [gs:di] ;equal chars
     je readeq
     xor di, di
     jmp nextread
 readeq:
+    ;for wfind
     ;chars are equal
     inc di
     cmp byte [gs:di], 0xd ;if string found
@@ -607,7 +631,7 @@ readsi: ;si stores location of first char on screen (in text editor)
 rsiend:
     jmp readcon
 rsiloop:
-    ;mov si to next line
+    ;move si to next line
     inc si
     cmp byte [es:si], 0xa ;newline
     jne rsiloop
@@ -634,13 +658,12 @@ write:
     mov es, ax
     call filenum ;get file number
     push cx ;store for save
-    xor cx, cx ;due to edit, how many chars already in file
     call new
-    xor bx, bx ;pointer
     xor si, si ;for scrolling
+    xor bx, bx ;pointer
 wedit: ;for edit
-    mov byte [es:bx], 0h
-    mov di, cx ;index of cursor char
+    mov byte [es:bx], 0h ;mark last char
+    mov di, bx ;index of cursor char
     mov ax, COPY_BUFFER
     mov fs, ax
 typechar: ;main editor loop
@@ -649,7 +672,7 @@ typechar: ;main editor loop
 wtype:
     ;update screen from location of cursor
     push di
-    mov bh, 0h ;i hate this
+    mov bh, 0h ;i hate that bh must be 0, else bugs
     mov ah, 3h ;get cursor
     int 10h
     push dx
@@ -670,39 +693,35 @@ typecont:
 typend:
     call typeline ;clear two lines
     call typeline ;..due to backspace on newline
+typend2: ;used by typelinestart
     pop dx
     mov ah, 2h ;reset cursor
     int 10h
     pop di
     ret
 typelinestart:
-    mov ah, 3h
-    int 10h
-    cmp dh, 0x18 ;bottom row
-    je typend
     call typeline
+    cmp dh, 0x18
+    je typend2
     jmp typecont
 typeline:
+    ;fill rest of line with spaces
     mov ah, 3h
     int 10h
-    mov bl, 0x50 ;width of screen
-    cmp dh, 0x18 ;if on lowest row, prevent newline by bl-1
-    jne typelcon
-    dec bl
-typelcon:
-    sub bl, dl ;number of spaces to fill line with
-    mov ax, 0xe20 ;space
-tlloop:
-    cmp bl, 0h ;end of row
-    je tlloopend
-    int 10h ;!this must be below the cmp
-    dec bl
-    jmp tlloop
-tlloopend:
+    mov cx, 0x4f ;width of screen
+    sub cl, dl ;number of spaces to fill line with
+    je typecl ;if cl=0 don't write
+    mov ax, 0xa20 ;fill line
+    int 10h
+typecl:
+    cmp dh, 0x18 ;if not on last line:
+    je typeret
+    call enter   ;..enter
+typeret:
     ret
 wgetchar:
     mov bh, 0h
-    ;get cursor location for dx, used by some keys
+    ;get cursor location for dx, used by some special keys
     mov ah, 3h
     int 10h
     ;get char to write
@@ -746,9 +765,13 @@ wgetchar:
     cmp ah, 0x3d ;f3
     je wreplace
     cmp ah, 0x3e ;f4
-    je wgoto
+    je save
     cmp ah, 0x3f ;f5
     je wspace
+    cmp ah, 0x40 ;f6
+    je wgoto
+    cmp ah, 0x41 ;f7
+    je wlink
     ;output character typed
     mov ah, 0xe
     int 10h
@@ -760,7 +783,7 @@ wgetchar:
     je wspecial
     cmp al, 0x7e ;~ char count
     je wchar
-    call wloopstart
+    call wloopstart ;add char to buffer
     jmp typechar
 wloopstart:
     mov bx, di ;pointer
@@ -777,9 +800,8 @@ wloopend:
     mov byte [es:bx], 0h ;show end of file
     ret
 wleft:
-    cmp di, 0h ;if start of file do nothing
-    je wgetchar
-    cmp dx, 0h ;if top left of screen
+    ;move cursor one step left
+    cmp dx, 0h ;if top left of screen do nothing
     je wgetchar
     dec di
     cmp dl, 0h ;beginning of line
@@ -788,7 +810,7 @@ wleft:
     int 10h
     jmp wgetchar
 wleftnl:
-    ;move cursor
+    ;move cursor to previous line due to newline
     mov ah, 2h
     dec dh
     mov dl, 0x4f ;end of line
@@ -796,8 +818,9 @@ wleftnl:
     cmp byte [es:di], 0xa ;newline
     jne wgetchar
     dec di
-    jmp wbnloop ;move to previous line
+    jmp wbnloop
 wright:
+    ;move cursor one step right
     cmp byte [es:di], 0h ;end of file
     je wgetchar
     call wright2
@@ -806,19 +829,19 @@ wright2:
     ;get cursor location
     mov ah, 3h ;due to wend
     int 10h
-    cmp byte [es:di], 0xd ;newline
+    cmp byte [es:di], 0xd ;if newline
     je wrightnl
     inc di
-    ;move cursor right
+    ;else simply move cursor right
     mov ah, 2h
     inc dl
     int 10h
     ret
 wrightnl:
-    cmp dh, 0x18
-    je wrightend ;ret
+    cmp dh, 0x18 ;if last line do nothing; we don't want to scroll
+    je wrightend
     add di, 2h ;go past 0xa
-    ;move cursor
+    ;move cursor to start of next line
     mov ah, 2h
     inc dh
     mov dl, 0h
@@ -826,37 +849,38 @@ wrightnl:
 wrightend:
     ret
 backspace:
-    cmp di, 0h ;if start of file
+    cmp di, 0h ;if start of file: do nothing
     je wgetchar
-    cmp dx, 0h ;if top left of screen
+    cmp dx, 0h ;if top left of screen: do nothing
     je wgetchar
     mov ax, 0xe08 ;backspace
     int 10h
     dec di
     mov ch, [es:di] ;must store for cmp later
     call wbloopstart ;remove char from buffer
-    cmp dl, 0h ;newline erase?
+    cmp dl, 0h ;are we removing a newline?
     je wbnl
 wbauto:
-    ;clear char on cursor
+    ;else just erase char
     mov bh, 0h
     mov cx, 1h ;only one char
     mov ax, 0xa20 ;for backspace newline
     int 10h
     jmp typechar
 wbnl:
-    ;move cursor
+    ;move cursor to previous line
     mov bh, 0h
     mov ah, 2h
     dec dh
     mov dl, 0x4f ;79 end of row
     int 10h
     cmp ch, 0xa ;was stored, check if newline
-    jne wbauto
+    jne wbauto  ;this causes a bug if removed
     ;remove newline
     dec di
     call wbloopstart
 wbnloop:
+    ;move left until we find text; due to this a line can not end with a space
     ;get cursor char
     mov bh, 0h
     mov ah, 8h
@@ -894,17 +918,13 @@ wbloop:
 wbloopend:
     ret
 wup:
-    ;arrow up, move to end of above line
+    ;arrow up, move to end of previous line
     mov bl, dl ;bh = 0
-    sub di, bx ;move di to start of line
-    mov bh, 0h    
+    sub di, bx ;move di to start of line  
     mov ah, 2h
     mov dl, 0h ;move cursor to start of line
     int 10h
     jmp wleft
-wdownstart:
-    cmp dh, 0x18 ;last row
-    je wgetchar
 wdown:
     ;arrow down, move to end of next line
     mov al, [es:di]
@@ -915,6 +935,7 @@ wdown:
     call wright2
     jmp wdown
 wdown2:
+    ;when newline found, go to end of that line
     call wright2
     mov al, [es:di]
     cmp al, 0xd ;newline
@@ -923,8 +944,8 @@ wdown2:
     je wgetchar
     jmp wdown2
 wenter:
-    mov al, 0xd
-    call wloopstart
+    ;handles the writing of enter
+    call wloopstart ;insert al=0xd into buffer
     ;di already increased
     mov bh, 0h
     call typeline
@@ -940,7 +961,7 @@ wenter:
     jmp typechar
 wpgup:
     ;scroll page up
-    cmp si, 0h
+    cmp si, 0h ;if already at top: do nothing
     je wgetchar
     call rbacksi ;si to previous line
     call wpg
@@ -961,52 +982,39 @@ wpg:
     call back ;cursor top left
     mov di, si
     call wtype ;rewrite screen
+    ;restore values and cursor
     pop di
     pop dx
     mov ah, 2h ;move cursor one line up
     ret
 wins:
     ;scroll bulk to top
-    xor dx, dx
-    mov ah, 2h
-    int 10h
-    xor si, si
+    call back
+    xor si, si ;reset values
     xor di, di
     jmp typechar ;rewrite screen
 wdel:
-    ;scroll bulk to bottom
+    ;scroll bulk to bottom by re-reading file
     call rstart
     mov di, bx ;last char
     jmp wgetchar
 whome:
     call back ;move cursor to top left
-    mov di, si ;set to first byte
+    mov di, si ;set to first char on screen
     jmp wgetchar
 wend:
-    ;move cursor to end  of file
+    ;move cursor to end of file
     cmp byte [es:di], 0h ;end of the file
     je wgetchar
-    cmp dh, 0x18
-    je wendrowstart
     call wright2 ;go to next line
+    cmp dh, 0x18 ;if last line
+    je wendnl
     jmp wend
-wendrowstart:
-    call wendrow
-    jmp wgetchar
-wendrow:
-    mov al, [es:di]
-    cmp al, 0h ;end of file
-    je wendend
-    cmp al, 0xd ;newline
-    je wendend
-    inc di
-    mov bh, 0h
-    mov ah, 2h ;cursor right
-    inc dl    
-    int 10h
-    jmp wendrow
-wendend:
-    ret
+wendnl:
+    ;check if we are at the end=newline
+    cmp byte [es:di], 0xd
+    je wgetchar
+    jmp wend
 wspecial:
     ;type special ascii char
     call filenum ;char value
@@ -1058,30 +1066,30 @@ wrloop:
 wrcomp:
     ;compare chars between buffers  
     mov al, [gs:di]
-    cmp al, 0xd
-    je wrfound
+    cmp al, 0xd ;enter marks the end of the input string
+    je wrfound  ;->meaning we found a match
     cmp byte [es:bx], 0h ;end of file
     je wdel
-    cmp al, [es:bx]
+    cmp al, [es:bx] ;if the strings are unequal
     jne wrnot
-    ;equal
+    ;equal chars, but not yet strings
     inc bx
     inc di
     jmp wrcomp
 wrnot:
-    ;chars unequal
+    ;strings unequal
     inc bx
     xor di, di
     jmp wrcomp
 wrfound:
-    ;string found, replace
+    ;string found: replace
     ;remove old string
     dec bx ;right char
     push bx
     call wbloop
     pop bx
-    dec di ;must be after call to be right number of times
-    je wrcon
+    dec di   ;must be after call to be right number of times
+    je wrcon ;erase chars until di=0
     jmp wrfound
 wrcon:
     ;write new string
@@ -1096,84 +1104,157 @@ wrwrite:
     pop bx
     inc bx
     jmp wrwrite
+wspace:
+    ;remove spaces before newlines
+    ;add newlines where lines are completely full
+    xor di, di
+wsloop2: ;used by 'wsnl'
+    xor dx, dx ;counts chars on lines
+wsloop:
+    mov al, [es:di]
+    cmp al, 0h ;end of file
+    je wsend
+    cmp al, 0xd ;newline
+    je wcspace
+    cmp dx, 0x4f ;end of line
+    je wsnl
+    inc di
+    inc dx
+    jmp wsloop
+wsnl:
+    dec di
+    cmp byte [es:di], 0x20 ;find space
+    jne wsnl
+    ;insert enter
+    call wsspace2 ;check spaces
+    inc di ;to be right
+    mov al, 0xd
+    call wloopstart ;insert enter
+    mov al, 0xa
+    call wloopstart ;insert complete enter
+    jmp wsloop2
+wcspace:
+    call wsspace
+    add di, 3h ;jump past newline
+    jmp wsloop2
+wsspace:
+    dec di
+wsspace2: ;used by 'wsnl'
+    cmp byte [es:di], 0x20 ;if space delete
+    je wsserase
+    ret
+wsserase:
+    call wbloopstart ;erase
+    jmp wsspace ;check if multiple spaces 
+wsend:
+    ;re-read file
+    call rstart
+    mov di, bx ;last char
+    jmp wgetchar
 wgoto:
     ;go to certain char in file
     call filenum ;get location into ax
     mov ch, cl
-    call filenum
+    call filenum ;4 digit hex
     mov bx, cx
+wgoto2: ;used by wcallcopy
     mov al, [es:bx]
     push ax ;save current character
     mov byte [es:bx], 0h ;mark location
     call rstart ;read until null char
     pop ax
     mov [es:bx], al ;reset
-    jmp wfend
-wspace:
-    ;remove spaces before newlines
-    mov cx, di ;updates when erasing
-    xor di, di
-wsloop:
-    inc di
-    mov al, [es:di]
-    cmp al, 0h ;end of file
-    je wsend
-    cmp al, 0xd ;newline
-    jne wsloop
-wsagain:
+    mov di, bx
+    jmp typechar
+wlink:
+;read the current 'word' which serves as a 'link' to another file
+;open that file. ex: 0000002002 would link to file 20-21 in home folder
+;i.e. folder number, file number, number of files
+;*2002 *is shortcut to use current folder
+    ;go to start of 'word'
     dec di
-    cmp byte [es:di], 0x20 ;if space delete
-    je wsspace
-wscon:
-    inc di ;next char
-    jmp wsloop
-wsspace:
-    call wbloopstart ;erase
-    cmp cx, di ;only if cursor is past erased char should cx be decreased
-    jbe wsagain
-    dec cx
-    jmp wsagain ;check if multiple spaces 
-wsend:
-    mov di, cx ;update
-    jmp wgetchar
+    cmp byte [es:di], 0x20 ;find space
+    jne wlink
+    mov bx, di ;will use bx as index later
+    inc di ;go to first char
+    cmp byte [es:di], 0x2a ;* shortcut for current folder
+    je wlfile
+    ;read folder number
+    mov ax, 0x1000
+    mov fs, ax
+    mov di, 0x1fa ;location of folder number
+    mov cl, 3h ;3 numbers read
+wlloop:
+    call agetbyte   ;read 3 numbers
+    mov [fs:di], al ;write into folder number
+    inc di
+    dec cl
+    jne wlloop
+    dec bx ;due to * shortcut
+wlfile:
+    inc bx
+    ;get file number and bulk length
+    call agetbyte
+    push ax ;file number
+    call agetbyte
+    mov dl, al ;store for later
+    pop cx ;file number
+    call setfolder
+    ;read file
+    mov ax, 0x1200 ;buffer
+    mov es, ax
+    xor bx, bx
+    mov ah, 2h
+    mov al, dl
+    mov dl, 0x80
+    int 13h ;read
+    pop bx ;take down cx=file number
+    call rlink ;write file to screen
+    push cx ;file number, for save
+    jmp wedit
 wcallcopy:
     ;copy/cut
-    push dx
     push si
     call wcopy
     pop si
-    call new ;due to cut
-    push di
-    mov di, si
-    call wtype ;update screen
-    pop di
-    pop dx
-    mov ah, 2h ;set cursor
-    int 10h
-    jmp wgetchar
+    mov bx, di ;left-hand limit
+    jmp wgoto2 ;read until limit
 wcopy:
+;the copy buffer looks like this:
+;INDEX| CONTENT
+;0    | copying? (byte)(1=true, 0=false)
+;1-2  | index    (word)(index of first limit) [this is if copying=1]
+;1-   | buffer   (string)(stores the text to copy) [is if copying=0]
+;index 1 is i.e. used depending on the value of 'copying' boolean
+;either:
+;[1, <index>]
+;[0, <buffer>..]
     mov cl, al ;00 if cut (09 if copy)
     xor si, si
     cmp byte [fs:si], 0h ;check if copy is active
     jne wccopy
+    ;if not active mark copying as active 1h
     mov byte [fs:si], 1h ;start copying
     inc si
     mov [fs:si], di ;store char location
     ret
 wccopy:
     ;copy content
-    mov byte [fs:si], 0h ;end copying
+    mov byte [fs:si], 0h ;mark end of copying
     inc si
-    mov bx, [fs:si] ;get location of char
-    mov ax, di ;current location
+    mov bx, [fs:si] ;get location of second limit/char
+    mov ax, di ;current location into ax
     cmp bx, ax
-    jle wcsave
+    jle wcsave1
     xchg bx, ax ;bx should be lower than ax
-wcsave:    
+wcsave1:
+    mov di, bx ;bx is left limit
+wcsave: ;loop to store chars in buffer
     mov ch, [es:bx]
     mov [fs:si], ch ;store char in copy buffer
     cmp cl, 0h ;check if copy or cut
     jne wscopy
+    ;else follow cut procedure
     push ax
     push bx
     call wbloop ;cut char from buffer
@@ -1185,6 +1266,7 @@ wcsave:
     inc si
     jmp wcsave
 wscopy:
+    ;just increase the pointers
     cmp bx, ax
     je wcsavend ;all characters copied
     inc bx
@@ -1192,7 +1274,7 @@ wscopy:
     jmp wcsave
 wcsavend:
     inc si
-    mov byte [fs:si], 0h ;end of copy string
+    mov byte [fs:si], 0h ;mark end of copy string
     ret
 wpaste:
     push si
@@ -1210,8 +1292,9 @@ wpcon:
     inc si
     jmp wpasteloop
 wpsi:
+    ;if newline
     mov bh, 0h
-    mov ah, 3h
+    mov ah, 3h ;get cursor
     int 10h
     cmp dh, 0x18 ;check if last line
     jne wpcon
@@ -1237,8 +1320,10 @@ wpastend:
     int 10h 
     jmp wgetchar
 save:
-    ;save files
+    ;prepare saving
     pop cx ;file number
+    push cx ;if quick save, remain on stack
+    push ax ;quick save or not, int 16h
     mov bx, 0xffff ;becomes 0
     call lloop ;go to last byte
     push bx
@@ -1253,13 +1338,19 @@ savecon:
     pop bx
     shr bx, 9h ;/200h
     inc bl
+    ;save file
     call setfolder
     mov al, bl
     mov ah, 3h
     xor bx, bx
     mov dl, 0x80  
     int 13h
+    ;check if quick save
+    pop ax
+    cmp al, 0x60 ;` pure save
+    jne wgetchar
 savend:
+    mov sp, 0x1000 ;reset stack pointer, due to cx f4
     xor bx, bx
     mov byte [fs:bx], 0h ;reset copy buffer
     jmp input
@@ -1268,7 +1359,6 @@ edit:
     ;edit file
     call read
     push cx ;file number, for save
-    mov cx, bx ;number of chars in file
     jmp wedit
 
 delete:
@@ -1294,18 +1384,18 @@ lloop:
     jne lloop
     ret
 link:
-    ;link files together, (concatenate)
+    ;link files together (concatenate)
     call readfile ;get last file of first bulk
     push cx ;first file number
     call lloop
-    call readfiles2 ;use bx value
+    call readfiles2 ;use bx value for destination
     call lloop
     ;write files
     pop cx ;file number
     mov ah, 3h
     or bx, 0x1ff ;go to last byte
     mov byte [es:bx], 0h ;mark end of file
-    inc bh
+    inc bh ;->200h
     mov al, bh
     shr al, 1h ;set al to right number of files to save
     xor bx, bx ;reset buffer
@@ -1325,8 +1415,8 @@ jump:
     int 10h
     mov bl, al ;store in bx
     mov bh, bl
-    xor bx, 0xb1b0 ;convert from 30h to 80h, and not the first bit of bh
-    mov di, bx
+    xor bx, 0xb1b0 ;convert from 30h to 80h, and flip the first bit of bh
+    mov di, bx ;di is used to store source and destination disk
 copy:
     mov ax, 0x1200
     mov es, ax
@@ -1502,7 +1592,7 @@ hend:
 
 xdec:
     ;convert dec to hex
-    mov al, 0x30 ;end of ans
+    mov al, 0x30 ;mark end of result
     push ax
     mov dx, 0x2710 ;mul 10000
     xor bx, bx ;answer
@@ -1512,8 +1602,7 @@ xget:
     ;get number
     mov ah, 0h
     int 16h
-    ;print
-    mov ah, 0xe
+    mov ah, 0xe ;output
     int 10h
     and ax, 0xf ;~sub 30h
     push dx ;save while mul
@@ -1549,15 +1638,15 @@ real:
     ;convert hex float to dec float
     call filenum
     mov bh, cl
-    call filenum ;float in ax
+    call filenum ;get number and push
     mov bl, cl
     push bx
-    mov cl, 6h ;counter
+    mov cl, 6h ;counter=number of digits in output
     mov bx, 0xa ;10 is multiplier
     call enter
     mov al, 0x2e ;.
     int 10h
-    pop ax
+    pop ax ;number to convert
 realoop:
     mul bx      ;by solving for x in the ratio equation (x/10=y/16)..
     push ax     ;where y is the upper most nibble in ax (the inputted float value)..
@@ -1572,10 +1661,10 @@ realoop:
 
 info: 
     ;Pikobrain dir/ls command 
-    ;ouput folder number in hex
     mov ax, 0x1000
     mov fs, ax
     mov si, 0x1fa ;folder number location
+    ;ouput folder number in hex
     mov ch, [fs:si]
     call xtox
     inc si
@@ -1607,17 +1696,17 @@ iloop:
     or bx, 0x1ff ;end of file
     cmp byte [es:bx], 0h ;check if file is full
     je iskip
-    mov al, 0x3a ;: use different char
+    mov al, 0x3a ;: used if file is full
 iskip:
-    int 10h ;output char
+    int 10h ;output . or :
     and bx, 0xfe00 ;start of file
     mov ch, 0xa ;char counter
 iwloop:
-    ;write chars
+    ;write 10 chars
     mov al, [es:bx]
     cmp al, 0x20 ;space, to not print weird chars
     jge iw
-    mov al, 0x2a ;*
+    mov al, 0x2a ;* to mark special char
 iw:
     int 10h
     inc bl ;next char
@@ -1629,7 +1718,7 @@ iw:
     int 10h ;3 times, will cause a newline
 ilend:
     mov bl, cl
-    shl bx, 9h
+    shl bx, 9h ;move bx to next file
     inc cl
     cmp cl, 0x40 ;last file
     je input
@@ -1670,7 +1759,7 @@ sfind:
     ;print file number
     push bx
     push bx
-    shr bx, 9h
+    shr bx, 9h ;"convert" into file number
     inc bl
     mov ch, bl
     call xtox
@@ -2418,6 +2507,11 @@ aJMP:
     inc di ;where machine code will be written
     mov cx, di ;store location of machine code pointer
     inc di ;to be correct later
+    call aJMl
+    inc si
+    mov [fs:si], cx ;store di
+    add si, 2h
+    jmp acend
 aJMl:
     ;store label name in fs:si
     mov al, [es:bx]
@@ -2428,10 +2522,7 @@ aJMl:
     inc bx
     jmp aJMl
 aJMlend:
-    inc si
-    mov [fs:si], cx ;store di
-    add si, 2h
-    jmp acend
+    ret
 aLabel:
     mov ax, 0x2800 ;fs:si stores labels
     mov fs, ax
@@ -2439,19 +2530,10 @@ aLabel:
     pop si ;the si for 0x2800 is stored on stack
     mov cx, di ;store for later (dx=si, cx=di)
     inc bx ;get passed the 1st "." in label name
-aLabell:
-    ;store label name
-    mov al, [es:bx] ;current char
-    mov [fs:si], al ;store
-    cmp byte [es:bx], 0x2e ;. ;end of label name
-    je aLabelend
-    inc si
-    inc bx
-    jmp aLabell
-aLabelend:
+    call aJMl ;store label in buffer
     ;store memory location of label
     inc si
-    mov [fs:si], cx
+    mov [fs:si], cx ;store di
     add si, 2h
     push si
     mov si, dx ;return to normal
@@ -2548,11 +2630,11 @@ asave:
     ;add jumps to machine code (second round)
     mov ax, 0x2000
     mov fs, ax
-    mov byte [fs:si], 0h ;end of jmp list
+    mov byte [fs:si], 0h ;mark end of jmp list
     mov ax, 0x2800
     mov es, ax
     pop si
-    mov byte [es:si], 0h ;end of label list
+    mov byte [es:si], 0h ;mark end of label list
     xor si, si
 aslstart:
     xor bx, bx
@@ -2607,7 +2689,7 @@ aleloop:
     cmp al, 0x2e ;. end of name
     jne aleloop
 awrite:
-    mov ax, 0xe61 ;Assembled
+    mov ax, 0xe61 ;assembled
     int 10h
     ;buffer of machine code to be saved
     mov ax, 0x1a00
@@ -2626,20 +2708,19 @@ awrite:
 
 run:
     ;run user program
-    ;read files
     call readfiles
     call 0x1000:0x2000 ;location of program machine code
 runcall: ;used in ctrl+break handler
     jmp input 
 
-    times 5086-($-$$) db 0h ;fill space
+    times 5598-($-$$) db 0h ;fill space
 
 ;***********
 ;CTRL+BREAK
 ;***********
 
     ;ctrl+break handler
-    ;goes to callnew
+    ;goes to input
     mov bx, sp ;store
     mov sp, 0xffe ;first stack item
 breakloop:
