@@ -1,7 +1,7 @@
 # Pikobrain
 A 16-bit Operating System written in assembly language.
 
-Supposed to be small, but usabe. Only 5.5kB of binary code.
+Supposed to be small, but usable. Only 5.5kB of binary code.
 
 Has a decent text editor, assembler*, and common file manipulation commands etc.
 
