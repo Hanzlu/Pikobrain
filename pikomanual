@@ -139,6 +139,12 @@ After entering an operation you should be displayed with a four digit hexadecima
 The calculator can not have answers larger than FFFF and does not support negative numbers directly (unsigned).
 **Use the 'not and add 1' method to deal with negative results.
 
+K, Kagain:
+he K command uses the result from the last kalculator operation as the first number used in the next operation.
+Thus, you only need to enter the second number and the operation.
+This command should only be used immediately after having used the k command.
+**It simply uses the value in cx register, i.e. doesn't store the result elsewhere.
+
 h, hex:
 Enter a four digit hexadecimal number. You will be displayed with the number converted into decimal.
 
@@ -323,6 +329,11 @@ It is also possible to copy empty files into the files to delete.
 m, memory:
 Will display a file in hexadecimal form, like a .bin file. As argument, enter a file number.
 It shows all content of the file, and null characters (00) are displayed as "..".
+
+M, MASCII:
+Similar to the m command, but the M command displays a file in pure ASCII text, except for characters with an ASCII value less than 20 (HEX),
+which are printed as * since they otherwise may cause unexpected behaviour. Unlike the text editor which stops at a null character, the M command reads everything.
+The argument to be added is the file number of the file to be read, just like in the m command.
 
 v, visible:
 Same as memory, but asks for a second argument, which is a two digit hexadecimal number.

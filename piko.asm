@@ -17,7 +17,7 @@ COPY_BUFFER equ 0x1170
 jmp bootloader
 
     ;"help file" list of commands
-    db "Pikobrain v1.5.4", 0xd, 0xa
+    db "Pikobrain v1.5.5", 0xd, 0xa
     db "new", 0xd, 0xa
     db "enter", 0xd, 0xa
     db "back", 0xd, 0xa
@@ -372,6 +372,8 @@ input:
     je time
     cmp al, 0x6d ;m
     je memory
+    cmp al, 0x4d ;M
+    je mascii
     cmp al, 0x76 ;v
     je visible
     cmp al, 0x70 ;p
@@ -389,7 +391,9 @@ input:
     cmp al, 0x6a ;j
     je jump
     cmp al, 0x6b ;k
-    je kalc 
+    je kalc
+    cmp al, 0x4b ;K
+    je kagain
     cmp al, 0x68 ;h
     je hex
     cmp al, 0x78 ;x
@@ -492,17 +496,23 @@ time:
 memory:
     ;read file in hex
     call readfile
+    mov cl, 0h ;due to mascii, show that hex output in use
+mastart: ;for mascii
     mov dl, 0h ;due to visible, show that m command running, not v
 menter:
     mov dh, 0h ;column counter
     call enter
 mbyte:
+    mov ah, 0xe ;prepare output
     mov ch, [es:bx] ;get content of byte
+    cmp cl, 0h ;if != 0 write as ascii
+    jne maset
     cmp ch, dl ;if value == <visible command value> or 0h when m command
     je mvisible
     call xtox ;else output as hex
 mcon:
-    mov ax, 0xe20 ;space
+    mov al, 0x20 ;space
+macon: ;for mascii
     int 10h
     inc bx
     cmp bx, 0x200 ;reading 512 bytes
@@ -513,16 +523,29 @@ mcon:
     jne mbyte
     jmp menter
 mvisible:
-    mov ax, 0xe2e ;.. to mark v command value
+    mov al, 0x2e ;.. to mark v command value
     int 10h
     int 10h
     jmp mcon
-
+maset:
+    ;prepare value as ascii
+    mov al, ch
+    cmp al, 0x1f
+    ja macon
+    mov al, 0x2a ;*
+    jmp macon
+    
+;similar commands
+mascii:
+    ;output file as ascii
+    call readfile ;cl != 0
+    jmp mastart
 visible:
     ;highlight opcode in memory
     call readfile
     call filenum ;get opcode
     mov dl, cl ;store opcode
+    mov cl, 0h ;due to mascii
     call menter
 
 place:
@@ -708,15 +731,14 @@ typeline:
     ;fill rest of line with spaces
     mov ah, 3h
     int 10h
-    mov cx, 0x4f ;width of screen
+    mov cx, 0x50 ;width of screen
     sub cl, dl ;number of spaces to fill line with
-    je typecl ;if cl=0 don't write
-    mov ax, 0xa20 ;fill line
+    je typeret ;if cl=0 don't write
+    mov ax, 0xa20
     int 10h
-typecl:
-    cmp dh, 0x18 ;if not on last line:
+    cmp dh, 0x18 ;if last line
     je typeret
-    call enter   ;..enter
+    call enter
 typeret:
     ret
 wgetchar:
@@ -1449,6 +1471,7 @@ copy:
 ;CALCULATOR
 kalc:
     call kgetint
+kagain: ;uses result from last operation, i.e. cx
     push cx ;store number
     call kgetint
     ;2 integers stored on stack
@@ -1553,6 +1576,7 @@ kanswer:
     call xtox
     mov ch, dl
     call xtox
+    mov cx, dx ;due to , command
     jmp input
 kgetint:
     ;get 4-digit hex number
