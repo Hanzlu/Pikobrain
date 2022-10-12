@@ -12,9 +12,9 @@ AND THAT YOU MAY NOT USE PORTIONS OF IT FOR COMMERCIAL USE, WITHOUT THE CONSENT 
 Pikobrain is not a system like others. For that reason it is necessary to read this manual in order to use Pikobrain in a good way.
 In this document I have attempted to present how Pikobrain works to potential users,
 without getting too technical into the inner workings of Pikobrain.
-I am sure that someone who wants to understand how Pikobrain works in detail will be able to read the source code, and find answers there. 
-You can check out the TECHNICAL section of this document to get some information of how some special things have been implemented in 
-Pikobrain.
+I am sure that someone who wants to understand how Pikobrain works in detail will be able to read the source code, and find answers there.
+Although, I do know that my Assembly code is an Italian Spaghetti Dinner at times. Reading the code of the text editor is hell for me too.
+You can check out the TECHNICAL section of this document to get some information of how some things have been implemented in Pikobrain.
 Lines starting with ** in this document are technical details. Lines starting with ! are warnings.
 £ shows sections containing values which depend on the size of Pikobrain.
 The £ is only a reminder to myself to check those sections when updating this file.
@@ -25,6 +25,7 @@ TABLE OF CONTENTS:
 3.COMMANDS
     A.FOLDERS
     B.FILES
+    C.TEXT EDITOR
 4.CODING
     A.EXAMPLE
 5.TROUBLES
@@ -43,7 +44,7 @@ The keyboard is automatically US character set.
 I have only used text editors for coding Pikobrain, currently using Kate in OpenSUSE which is a good one.
 All source code is in the piko.asm file.
 
-Pikobrain was originally intended to be an operating system in which I could use a low-level esoteric programming language I had made (ACL). 
+Pikobrain was originally intended to be an operating system in which I could use a low-level esoteric programming language I had made. 
 However, those ideas where forgotten the more I coded Pikobrain.
 Pikobrain became an operating system written with the intention to have a source code which was as small as possible.
 This meant the operating system couldn't be very user-friendly or advanced, and still today Pikobrain is supposed to be quite small,
@@ -59,8 +60,8 @@ The Input = the command prompt/shell/terminal
 
 This document is the easiest form of help with using Pikobrain.
 Within Pikobrain you can get a list of commands by typing the command 'e0101' when you have first entered the OS (in the "home" folder). 
-If you have questions that you are unable to find answers for, you are welcomed to contact Hanzlu through GitHub issues or on
-forum.osdev.org
+If you have questions that you are unable to find answers for,
+you are welcomed to contact Hanzlu through GitHub issues or on forum.osdev.org
 
 INSTALLATION
 ------------
@@ -90,8 +91,13 @@ Contact Hanzlu if something does not work. QEMU is known not to work with "vanil
 COMMANDS
 --------
 
+Since this manual is large, new users who wish to get started quickly, should read the next paragraph to begin with.
+Then it is suggested to go read the FILES section and about the TEXT EDITOR.
+The i command is especially useful, as it is similar to the dir/ls commands used in common operating systems.
+However, it is none the less useful to read all sections up until CODING. The TROUBLES section can be useful to know about too.
+
 Commands in Pikobrain are done by pressing keys. Each command is only one character long, and do not require the user to press enter.
-You always use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different.
+Most of the time you use lowercase letters when entering commands, since lowercase and uppercase letters are interpreted as different.
 Most commands also take arguments. Arguments are inserted as two digit (or more digits) hexadecimal numbers.
 Hexadecimal numbers are ALWAYS written in UPPER case such as B8.
 When pressing a command key it will not be displayed on the screen, however the arguments are displayed as you type them.
@@ -114,7 +120,7 @@ arrow keys, arrow:
 Moves the cursor in the expected directions.
 
 b, back:
-Moves the cursor to the top left of the screen
+Moves the cursor to the top left of the screen.
 
 The following commands take multi-digit numbers as arguments.
 They are always of a certain lenght which means that if you want to enter the number 1,
@@ -157,7 +163,7 @@ For example 1/3 = 0.5555 in hexadecimal floating point.
 If you enter the value 5555 you'll convert the value into a decimal floating point number: 0.333328.
 **This is what Pikobrain outputs in this case.
 This will be displayed as a dot followed by six digits.
-This command is not 100% accurate in all digits, often the first 4 digits are accurate.
+This command is not 100% accurate in all digits, often the first 4 digits are accurate, or the answer is close to the true one.
 
 o, os:
 Displays information about the drive/device that you booted from. All numbers are in hexadecimal.
@@ -169,21 +175,23 @@ Second number is the highest file you can access within a single folder.
 If this number is not 3F, you should contact Hanzlu, as files operations will not work.
 
 FOLDERS
-You should make sure to test the o command before dealing with folders. The o command tells you the highest folder number(s) you may enter. 
-If you exceed the limit strange stuff might happen.
+You should make sure to test the o command before dealing with folders.
+The o command tells you the highest folder number(s) you may enter. If you exceed the limit strange stuff might happen.
 The first 2 digit hexadecimal number of the current folder can be a maximum of 03, even if you have a massive hard drive,
-as Pikobrain can only access a maximum of a little more than 8GB of hard disk space.
+as Pikobrain can only access about 8GB of hard disk space.
 Make sure to know the second and third 2-digit number limitations with the o command so you do not exceed their limits.
-£You are always in folder 000000 when you enter the operating system, the 'home' folder. Files 01-0B are reserved for the operating system.
-Do not edit them if you do  not know what you are doing, as they contain the OS machine code.
-When inserting a folder number as an argument you can use some shortcuts.
+£You are always in folder 000000 when you enter the operating system, the 'home' folder.
+Files 01-0B are reserved for the operating system.
+Do not edit them if you do not know what you are doing, as they contain the OS machine code.
+When inserting a folder number as an argument you can use some shortcuts:
 By pressing two times on the tab button you will select the current folder.
 This will output two circles. By pressing two times on the h letter key you select the 'home' folder (000000).
 By pressing semi-colon twice you'll be able to insert a two digit number to alter only the last two digits of the folder number.
 When you use these shortcuts you must only do two (or four) key presses rather than six.
 
 f, folder:
-Changes the folder to the 6 digit hexdecimal number you insert. Make sure you do not exceed limits. You can use "shortcuts" mentioned above. 
+Changes the folder to the 6 digit hexdecimal number you insert.
+Make sure you do not exceed limits. You can use "shortcuts" mentioned above. 
 
 i, info:
 Displays information about the current folder you are within. Displays the folder number followed by the files within the folder.
@@ -191,8 +199,10 @@ Only files that do not have an ASCII 00 (hex) character as its first character w
 Files are displayed with their number, followed by a dot and the first 10 characters of the file.
 The first 10 characters can therefore be used as a "file name", to know what the file contains at least.
 Special characters outside of the range ASCII 20-7F (hex) are displayed as stars *.
-If a file do not have an ASCII 00 (null) character as its last character, the dot will be a : (colon) instead to show that the file is full. 
-This will not always work with binary files that have been created by the assembler. The colon makes it possible to spot "bulks".
+If a file do not have an ASCII 00 (null) character as its last character,
+the dot will be a : (colon) instead to show that the file is full. 
+(This will not always work with binary files that have been created by the assembler)
+The colon makes it possible to spot "bulks".
 
 s, search:
 Enter a character, word or string. Press enter to start the search. Backspace can be used.
@@ -218,7 +228,9 @@ however the Text Editor allows you to edit multiple consecutive files at once as
 
 w, write:
 Enter a file number. You can now write to a file. The w and e commands enter the "Text Editor" which is explained now:
-TEXT EDITOR:
+
+TEXT EDITOR
+
 The text editor works as you'd expect with most normal keys, however there are certainly some things that are different.
 Those keys will be explained now:
 
@@ -257,13 +269,13 @@ You can write special characters (ASCII 00-FF).
 Press the \ key and type a two digit hexadecimal number for a character's ASCII representation.
 This allows you access to characters outside of the ASCII 20-7F scope.
 Some characters in the range 00-1F might be 'invisible' (cause bugs) and not be printed expectedly, but will still be stored.
-Notice, that you should not cancel the writing of the two digit number by pressing backspace,
+NOTICE!! that you should not cancel the writing of the two digit number by pressing backspace,
 as this will actually make you return to the 'input'. The file will not be saved.
 
 If you hold shift and the ` button (left of 1) you'll be displayed with a '~' character and a four digit hexadecimal number.
 This number shows you the index of the character the cursor is on. Press any key and you can continue writing.
 By pressing f6 and typing a four digit hexadecimal number, the cursor will go to the character at that index.
-You should not press backspace while typing the number, this will make you return to the input.
+NOTE! You should not press backspace while typing the number, this will make you return to the input. File is not saved.
 If the index you type is larger than the size of the file content, you will be moved to the end of the file.
 
 In order to search for a string in the bulk, press f1. Enter a string and press enter.
@@ -299,7 +311,8 @@ The file you were inside will not be saved before the new file is opened. So you
 **The copy buffer is reset when you save or exit. Copied strings will still remain in the buffer, so you can paste into other files.
 Since files are 512 bytes large, this means that if you were to type more than 512 bytes and then save the file,
 the Text Editor will save your content over multiple files (as a bulk).
-The text editor will save as many files as necessary to cover the amount of text that has been written (for a maximum of 63 files (3F hex)).
+The text editor will save as many files as necessary to cover the amount of text that has been written
+(for a maximum of 63 files (3F hex)).
 **If the last file in the bulk is full (contains 512 bytes of actual text) then the text editor will save one more file,
 **which will be "invisible" since it starts with a null character.
 
@@ -331,8 +344,10 @@ Will display a file in hexadecimal form, like a .bin file. As argument, enter a 
 It shows all content of the file, and null characters (00) are displayed as "..".
 
 M, MASCII:
-Similar to the m command, but the M command displays a file in pure ASCII text, except for characters with an ASCII value less than 20 (HEX),
-which are printed as * since they otherwise may cause unexpected behaviour. Unlike the text editor which stops at a null character, the M command reads everything.
+Similar to the m command, but the M command displays a file in pure ASCII text,
+except for characters with an ASCII value less than 20 (HEX),
+which are printed as * since they otherwise may cause unexpected behaviour.
+Unlike the text editor which stops at a null character, the M command reads everything.
 The argument to be added is the file number of the file to be read, just like in the m command.
 
 v, visible:
@@ -362,7 +377,8 @@ A 'w' character should be displayed. Enter the destination folder's number (6 di
 Enter the destination file's number. You will be moved to the destination folder.
 
 j, jump:
-The j (jump) command can only be used when booting from a USB (or CD?). This command allows you to copy files between the USB and hard drive. 
+The j (jump) command can only be used when booting from a USB (or CD?).
+This command allows you to copy files between the USB and hard drive. 
 First enter if the USB or hard drive will serve as source. Pressing 0 specifies the USB, and pressing 1 would be the hard drive.
 Then enter the rest of the arguments the same way as the c command works: file number, number of files, (a 'w' will be displayed),
 a folder number (shortcuts possible), and finally the destination file number.
@@ -565,7 +581,8 @@ CUSTOMIZATION
 -------------£
 By using the p command to alter the value at location 001B in file 02 of the OS files,
 you can change the colors of the screen, using BIOS color attributes.
-(This (and other arbitrary memory values in this manual) is not always up to date. Use v command with 023E as arguments for color altering)
+(This (and other arbitrary memory values in this manual) is not always up to date.
+Use v command with 023E as arguments for color altering)
 After using the p command to change the color, you should restart the machine to get the actual effect.
 This value can also be changed from within the source code in piko.asm.
 
