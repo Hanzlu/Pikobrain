@@ -19,10 +19,11 @@ jmp bootloader
     ;"help file" list of commands
     db "Pikobrain v1.5.5", 0xd, 0xa
     db "new", 0xd, 0xa
-    db "enter", 0xd, 0xa
+    db "enter, "
     db "back", 0xd, 0xa
     db "time", 0xd, 0xa
     db "memory [fi]", 0xd, 0xa
+    db "Mascii [fi]", 0xd, 0xa
     db "visible [fi][2h]", 0xd, 0xa
     db "place [fi][4h][2h]['']", 0xd, 0xa
     db "write [fi]", 0xd, 0xa
@@ -32,6 +33,7 @@ jmp bootloader
     db "copy [fi][2h][fo][fi]", 0xd, 0xa
     db "jump [1h][fi][2h][fo][fi]", 0xd, 0xa
     db "kalc [4h][4h][1h]", 0xd, 0xa
+    db "Kagain [4h][1h]", 0xd, 0xa
     db "hex [4h]", 0xd, 0xa
     db "xdex [5d]", 0xd, 0xa
     db ".float [4h]", 0xd, 0xa
