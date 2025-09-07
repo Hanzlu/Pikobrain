@@ -1,11 +1,5 @@
-PIKOBRAIN MANUAL v1.7
-Hanzlu (2019-2024)
----------------------
-
-THE FOLLOWING TERMS OF USE APPLIES TO THIS AND ANY PRIOR VERSIONS OF PIKOBRAIN:
-I, HANZLU, CLAIM TO BE THE CREATOR OF PIKOBRAIN. BY USING PIKOBRAIN AND ANY FILES ALONGSIDE IT,
-YOU RECOGNIZE THAT YOU ARE NOT THE CREATOR OF IT,
-AND THAT YOU MAY NOT USE PORTIONS OF IT FOR COMMERCIAL USE, WITHOUT THE CONSENT OF HANZLU.
+PIKOBRAIN MANUAL v1.7.1
+Hanzlu (2019-2025)
 
 ----------
 
@@ -43,7 +37,7 @@ Commands are entered by single key presses (except arguments), and it uses the h
 The keyboard is automatically US character set. All source code is in the piko.asm file.
 
 The name Pikobrain comes from the 'big brain meme'. Piko means 10^-12 which is small, just like Pikobrain is supposed to be.
-Development began in late 2019, and has continued in unregular patterns of activity.
+Development began in late 2019, and has continued in unregular patterns of activity since then.
 
 Special words used in this document:
 Bulk, used to describe multiple (consecutive) files used together as one large file.
@@ -72,7 +66,7 @@ QEMU:
 Whereas VirtualBox is the main target, QEMU works with necessary changes and settings.
 Search for the word 'QEMU' in the piko.asm file, and uncomment the two lines 'popa' and 'ret', to prevent the color changing.
 Assemble the code and create the piko.flp file using the two commands mentioned near the end of the piko.asm file.
-Create a virtual hard disk using ' qemu-img create piko.img <size> ' where <size> is at the least 32k.
+Create a virtual hard disk using ' qemu-img create piko.img <size> ' where <size> is at least 32k.
 Run the virtual machine using ' qemu-system-x86_64 -fda piko.flp -hda piko.img -boot a ' or equivalent.
 
 Booting from the USB:
@@ -94,7 +88,7 @@ The Input is not marked with any character, and you return to the Input whenever
 To make sure you are at the Input, test the t command, or another single-key command.
 
 When Pikobrain has been installed on a machine for the first time, run the o command by pressing o.
-If the hard drive is larger than 32kB and the second number is not 3F, please contact Hanzlu.
+If the second (bottom) number is not 3F, please contact Hanzlu, as this value indicates an incompatible hard drive structure.
 
 
 3.COMMANDS
@@ -115,7 +109,7 @@ enter, enter:
 Newline and carriage return as expected.
 
 n, new:
-Clears the screen and moves the cursor to the top left.
+Clears the screen and moves the cursor to the top left. Resets the screen's color combination if it has been changed.
 
 arrow keys, arrow:
 Moves the cursor in the expected directions.
@@ -149,9 +143,9 @@ The calculator overflows after FFFF and does not support negative numbers direct
 
 K, Kagain:
 The K command uses the result from the last calculation as the first number.
-Thus, only enter the second number and then press a key for the operation.
+Therefore, only enter the second number and then press a key for the operation.
 This command should be used immediately after having used the k command.
-**It uses the value in the cx register, i.e. doesn't store the result elsewhere.
+**It uses the result value store in the cx register, i.e. doesn't store the result over a long period of time.
 
 h, hex:
 Enter a four-digit hexadecimal number, which gets converted into decimal and displayed.
@@ -169,9 +163,11 @@ This command is not 100% accurate in all digits. Often the first 4 digits are ac
 
     B.FILES
 
+Pikobrain uses hexadecimal numbers to identify file and folders.
+Folders are known by six-digit hexadecimal numbers, while files are represented by two digit hexadecimal numbers.
 Pikobrain always enters folder 000000 when started. 000000 is called the 'home' folder.
 £Files 01-0C in the home folder contain the Pikobrain code, and should probably be left untouched.
-File commands often take a file number as argument. A file number is in the range 01-3F.
+File commands often take a file number as argument. A file number is in the range 01-3F. (0x3F*512b = 31.5kB)
 **If the o command does not return 3F as its second number, file commands will not work.
 File commands often also ask for the number of files to be read, i.e. the length/size of the Bulk. This number is two digits too.
 Files in Pikobrain are automatically 512 bytes long **i.e. sectors on the hard disk.
@@ -185,7 +181,7 @@ The w command makes you write a file from scratch, while e allows you to continu
 The e command requires the file number and a second argument which is the number of files to read.
 In order to open the Bulk starting at file 20, with length 3, you'd type e2003, which would open files 20, 21 and 22 as a Bulk.
 Reading files is also done with the e command. Press escape when finished reading.
-By reading file 01 in the home folder (000000) you'll get a list of available commands.
+By reading file 01 in the home folder (000000) you'll get a list of available commands and their argument types.
 
 d, delete:
 Enter a file number and the number of consecutive files to delete. In each file, a null character is placed in its beginning.
@@ -204,10 +200,10 @@ In order to switch to a different value, do shift+tab and type a two-digit hexad
 When the program is started each row begins with a number and a : (colon), telling the index of the row.
 Then the 16 hexadecimal byte values of that row are displayed.
 Each row ends with the row in ASCII format, where ASCII values less than 10 (HEX) are displayed as *.
-Within the program you can used the arrow keys to move between the different hexadecimal values.
+Within the program you can use the arrow keys to move between the different hexadecimal values.
 It is possible to change a value by using the arrows to go to it, then writing a ~ (shift the key left of 1) and typing the new value.
 !Pressing backspace while you are typing a value in this program will cause the program to stop and leave everything unsaved.
-After having written a new value, the cursor moves to the next value.
+After having written a new value, the cursor moves to the next value. You can alter as many values as you like.
 In order to save your changes, press ` (left of 1). In order to exit the program without saving, press escape.
 Check the CUSTOMIZATION chapter to read about changing screen colors. This program can be used to recover files that have been deleted.
 
@@ -222,7 +218,7 @@ c, copy:
 Enter a file number for the source file, and its size, i.e. the number of files to read.
 A 'w' character should be displayed. Enter the destination folder's number (6-digit hexadecimal number or using a shortcut).
 Enter the destination file's number. You will be moved to the destination folder.
-(Read about folder numbers in the FOLDERS section)
+(Read about folder numbers and shortcuts in the FOLDERS section)
 
 j, jump:
 The j (jump) command can only be used when booting from a USB (or CD?).
@@ -231,15 +227,14 @@ First enter if the USB or hard drive will serve as source. Pressing 0 specifies 
 Then enter the rest of the arguments the same way as the c command works:
 File number, number of files, (a 'w' will be displayed), folder number (shortcuts possible), and finally the destination file's number.
 (Linux) To get a file onto the USB, begin by concatenating it to piko.bin using ' cat <yourfile> >> piko.bin '
-        Then write the piko.bin file to a USB stick and boot from it. (Not guaranteed to work)
-        (Linux writes enter only as a line feed, whereas Pikobrain also require a carriage return)
+Then write the piko.bin file to a USB stick and boot from it. (Not guaranteed to work)
 Pikobrain uses no recognized file system, but it is possible to read sectors from the USB using the 'head' command on Linux.
 £In order to read file 0D of the USB and place it into a file 'test.txt', do:
 'sudo head -c 6656 /dev/sdb | tail -c 512 > test.txt ' (Here 6656 specifies the file since 0x0D * 512 = 6656)
 Example of the command: j00C01[w]00000F20 (The user should not write [w] as w is outputted by the system)
-The command above would move file 0C from the USB into folder 00000F, file 20, on the hard drive.
+The command above would move file 0C from the USB into folder 00000F, file 20, onto the hard drive.
 **NOTE Whatever folder number the USB is at when running the j command, will be used as the destination folder.
-       So, to move a file in folder 000002 on the hard drive to the USB, you should first go to that folder on the USB (yes USB).
+So, to move a file in folder 000002 on the hard drive to the USB, you should first go to that folder on the USB (yes USB).
 
 o, os:
 Displays information about the drive/device that you booted from.
@@ -247,7 +242,7 @@ First number is the highest folder number you can enter. This number should alwa
 NOTE the number consists of three separate 2-digit hexadecimal numbers. None of these can be exceeded when accessing a folder.
 For example my test machine displays the number 03FEFE, which means I cannot enter folder 03FFFE, since FF > FE.
 The highest possible value the o command could give is 03FFFF. The first number never exceeds 03.
-The second number the o command tells the highest file you can access within any single folder.
+The second (bottom) number tells the highest file you can access within any single folder.
 If this number is not 3F, you should contact Hanzlu, as file commands will not work.
 
 
@@ -257,7 +252,7 @@ Make sure to test the o command before dealing with folders. Exceeding limits me
 A folder number then, is a six-digit hexadecimal number, actually made up of three separate two-digit numbers.
 When inserting a folder number as a command argument some shortcuts can be used:
 Pressing tab twice selects the current folder. This outputs two circles.
-Pressing the h key selects the 'home' folder (000000).
+Pressing the h key twice selects the 'home' folder (000000).
 Pressing semi-colon twice allows you to insert just the last two digits of the folder number.
 By using shortcuts you don't need to enter an entire 6-digit folder number.
 
@@ -271,10 +266,11 @@ Files are displayed with their number, followed by a dot and the first 10 charac
 The first 10 characters can therefore be used as a "file name", even if Pikobrain makes no use of such.
 Special characters outside of the range ASCII 20-7F are displayed as stars *.
 If a file does not have a null character as its last character, the dot will be a : (colon) instead to show that the file is full.
-The colon makes it possible to spot Bulks. (This works properly only for files created with the Text Editor)
+The colon makes it possible to spot Bulks, that is, files that span multiple single files.
+(The : only properly works for files created with the Text Editor)
 
 s, search:
-Enter a character, word or string. Backspace can be used. Press enter to start the search.
+Enter a character, word or string. Backspace can be used, but not arrows. Press enter to start the search.
 The command displays the files in the current folder which cointain the input string, and the location (index) of the string in each file.
 When entering a string, you can write * characters to mark that that specific character can be any character. (Wildcard)
 After pressing s for the command, you can press f1 to search for the last string searched for.
@@ -282,14 +278,14 @@ It is also possible to write some characters and then press f1, which will repla
 As an example of this: if you searched for 'hello' the first time, and then the next time you type HE and then press f1:
 The string you will search for is now 'HEllo', as it will reuse the characters of the old string which were not overwriten.
 !It is not possible to overwrite all characters of the last string and then press f1.
-**The search buffer is 16 bytes wide. The same buffer is used for f1 in the text editor.
+**The search buffer is 128 bytes wide. The same buffer is used for f1 in the text editor.
 
 
 4.TEXT EDITOR
 -------------
-The text editor begins by reading the whole file to the bottom.
-The text editor is capable of moving words when they no longer fit on a line, but do not fill an entire line with one word.
-**This is done by updating the screen from the point of the cursor, to check if such moves are necessary.
+The text editor begins by placing the cursor at the top left and reading in the Bulk as much as possible without scrolling.
+The text editor is capable of moving words when they no longer fit on a line, but you should not fill an entire line with no spaces!
+**Handling full-line word moves is done by updating the screen from the point of the cursor, to check if such moves are necessary.
 These moves are not done at the end of the last line however, but it should not cause any bugs, only a slight odd feeling.
 The text editor works as you'd expect with most normal keys, but there are certainly things that are different.
 
@@ -316,27 +312,26 @@ f4, ascii-table
 f5, quick-save
 f6, reload
 f7, goto-index
-f8, link
 
 Keys are now described in closer detail:
 
 Enter, works as you'd expect.
 **Stored as two characters (0xD and 0xA ASCII, which are seen as one by the editor, so backspace erases both at once)
-**Files where only 0xA is used for newline (UNIX) should work fine.
+**Files where only 0xA is used for newline (UNIX) should work fine too.
 Backspace, works as expected, but will not erase if the cursor is in the top left of the screen, as this would cause a scroll.
 Side arrows, works as expected, but will not scroll the screen. (Will do nothing if the cursor is in top-left or bottom-right)
 Up/down arrows, goes to the end of the line in the arrow's direction. (Will not scroll, and stops in top-right or bottom-left at most)
-Among these, arrows and backspace does not scroll, but enter can.
+Among these, arrows and backspace does not scroll, but enter can scroll.
 
 In order to scroll you should use page up and page down. They scroll one line.
 It is not possible to scroll beyond the text or cursor. The cursor remains by the same character when scrolling.
 
-The home key, will move the cursor to the top left of the screen.
-The end key, will move the cursor to the bottom right of the text.
+The home key moves the cursor to the top left of the screen.
+The end key moves the cursor to the bottom right of the text currently on the screen.
 
-The insert key, will scroll the whole file to the top.
-The delete key, will scroll the whole file to the bottom.
-(On laptops the insert and delete keys might be on the numpad, or they'll be next to the function keys.)
+The insert key takes you to the top of the Bulk.
+The delete key takes you to the bottom of the Bulk.
+(On laptops the insert and delete keys might be on the numpad, or they'll be next to the function keys. You may need to use the fn key)
 
 In order to copy text, press the tab key. Pikobrain remembers the character at which the cursor is.
 When pressing the tab key a second time, Pikobrain will copy all text between the two key presses, including those on the cursors.
@@ -350,39 +345,33 @@ Some characters in the range 00-1F might be 'invisible', cause bugs and not be p
 !NOTE! Do not cancel the writing of the number by pressing backspace, as this returns you to the Input, and the file will not be saved.
 By pressing f4 a table of all the ascii characters in the range 10-FF (HEX) are displayed. Press any key to exit this display.
 
-Press the \ key displays the '\' character and a four-digit hexadecimal number.
-This number gives the index of the character the cursor is on. Press any key to continue writing.
+To see which Bulk you are in, and the index of the cursor, press the \ key.
+This displays the '\' character followed by the file number of the first file in the Bulk and a : (colon).
+This is followed by a four-digit hexadecimal number which gives the index of the character the cursor is on.
+Press any key to continue writing.
 By pressing f7 and typing a four-digit hexadecimal number, the cursor will go to the character at that index.
 !NOTE! Do not cancel the writing of the number by pressing backspace, as this returns you to the Input, and the file will not be saved.
 If the index typed is larger than the size of the file content, you will be moved to the end of the file.
+If the index typed happens to point to the 0xA of a (0xD,0xA) newline character, the program will bug and read the file until the end.
 
-In order to search for a string in the text, press f1. Enter a string and press enter. An empty string is not found.
+In order to search for a string in the text, press f1. Enter a string and press enter. (An empty string cannot be searched for)
 When entering the string, you can use * as a wildcard, to signify that that character may be any character.
 The cursor will jump to the first instance of the string in the text (by rereading the file).
-In order to search for the next occurance of the string, press f2.
-This will search for the next occurance, starting from the location of the cursor.
+In order to search for the next occurance of the string (starting from the cursor's position), press f2.
 If the string is not found when using f1 or f2, the cursor will go to the end of the text.
 You can replace a string by using f1 to specify the string that will be replaced, and then f3 to type the string to replace it with.
 (Press enter after you've written each string) All instances of the f1-string will be replaced with the f3-string, and the text is re-read.
-Wildcards with * work also for replace. The replacement string (given by f3) can be empty. This would erase all instances of the f1-string.
-To cancel the writing of the f3-string, press escape. This will move the cursor to the top of the file, and prevent the replacement.
-Read about the s command to find an extra f1 functionality.
-This functionality can be used for both f1 and f3 and is done on the respective string.
-**The f1- and f3-strings are stored in buffers with a size of 16 bytes. Inputted strings should not be longer.
+Wildcards using * works for the f1-string for replace also. Obviously, it does not make sense to use wildcards in the f3-string.
+The f3-replacement string can be empty. This would erase all instances of the f1-string.
+To cancel the writing of the f3-string, press escape. After using the f3-key the Bulk is reread, but if esc is pressed you go to the top.
+(Read about the s command to find an extra f1 functionality. I mean the one where you press f1 while typing the string.)
+(This functionality can be used while writing both the f1- and f3-strings.)
+**The f1- and f3-strings are stored in buffers with a size of 128 and 112 bytes respectively. Inputted strings should not be longer!
 
 In order to save a file you press the button to the left of the 1 key. This should display `, which means the file has been saved.
 In order to quit the Text Editor, without saving, press escape. This should display an arrow.
 Pressing f5 will do a quick-save and allow you to continue writing.
-Pressing f6 will reload the latest quick-save, bringing you back to that version. (This is a poor man's ctrl-z (undo) of depth 1.)
-
-f8 Allows you to use "file links". A file link can be placed within a file and can be used to open another file.
-For example, if I write 0000002003, and then move my cursor onto it and press f8:
-The text editor would open folder 000000, a Bulk starting at file 20 with length 03. i.e. 20,21,22 as a Bulk.
-In other words it is the folder number, the file number, and the number of files as one large number, without spaces.
-It's not possible to use shortcuts, except to use the current folder; then you can write a * instead of the folder number.
-In the above example it would be *2003 if you were already in the home folder.
-!NOTE! There must be a space before this "link", and the cursor must be on the link (or one step to the right of it) when pressing f8.
-The file you were inside will not be saved before the new file is opened. Use f5 to save it if necessary.
+Pressing f6 will reload the latest save, bringing you back to that version. (This is a poor man's ctrl-z (undo) of depth 1)
 
 The Text Editor saves as many files as necessary to store the whole text written (including the last null character), as a Bulk.
 Make sure this does not overwrite other important files, or that it exceeds the 3F files per folder limit.
@@ -396,7 +385,8 @@ If the Text Editor or cursor begin to bug, try the following things until one wo
 Press home to move the cursor to top left.
 Press delete to re-read the file.
 Press ` to save the file.
-Press Ctrl+Break to return to the Input. If this doesn't work, you must restart the computer.
+Press Ctrl+Break to return to the Input.
+If this doesn't work, you must restart the computer.
 
 
 5.CODING
@@ -405,7 +395,7 @@ Press Ctrl+Break to return to the Input. If this doesn't work, you must restart 
 **User programs should especially not use that buffer, as it would alter the very code the program is running from.
 To show how Pikoasm translates to NASM assembly code ('<code>') is used.
 
-Pikobrain has a limited assembler. The assembly language is a custom version of assembly language called Pikoasm.
+Pikobrain has a limited assembler. The assembly language is a custom version of assembly language referred to as Pikoasm.
 The assembler can only assemble one Bulk at a time, and the code is written in UPPER case, and uses hexadecimal.
 
 If a mneumonic can use either a register or an immediate value as source, the option is indicated by the mneumonic.
@@ -437,11 +427,6 @@ Q, (rotate), QR = ror, QL = rol
 NOTE 16-bit registers also only take byte values as arguments.
 Example: ZR BX 01 ('shr bx 1h')
 
-Here is a list of 2-character mneumonics, taking only a byte as argument:
-G, GI = in, GO = out
-NOTE the al register is automatically used so don't specify a register, just the immediate (port).
-Example: GI 64 ('in al, 0x64')
-
 Here is a list of 1-character mneumonics in Pikobrain, taking one argument.
 Mneumonics marked with a * can only take 16-bit registers as arguments.
 Those marked with a / can only take a byte immediate as argument, and those with a \ can only take registers:
@@ -456,6 +441,16 @@ U, push* (if you want to push ax you write UA, so no X and everything in one mne
 (UA, UB, UC, UD, US and UT are in other words the ones you can use. Same for pop below.)
 P, pop* (PA, PB, PC, PD, PS, PT)
 
+The ordinary assembly mneumonics 'in' and 'out' are also present as follows:
+GI , 'in al, imm8' ex: GI 63
+GII, 'in ax, imm8' eq: GII 63
+GIA, 'in al, dx'
+GIX, 'in ax, dx'
+GO , 'out al, imm8' ex: GO 64
+GOO, 'out ax, imm8' ex: GOO 64
+GOA, 'out al, dx'
+GOX, 'out ax, dx'
+
 Control flow:
 Labels are marked as string starting and ending with dots such as .LOOP. To jump to a label, use 'JM <label name>.'
 Label names end with a dot but do not start with one when jumping, so in order to jump to the LOOP label, write 'JM LOOP.'
@@ -468,7 +463,8 @@ JN, jump not equal
 JG, jump greater
 JA, jump above
 JL, jump less
-JB, jump below
+JB, jump below (can also be used as jump carry)
+JO, jump overflow
 The conditional jumps works like JM regarding the labels.
 
 Segmentation:
@@ -491,11 +487,11 @@ Macros:
 To simplify some of the programming, Pikoasm provides some macros/functions listed below.
 The list describes the macros and lists the registers that are affected by using the macro:
 WA, converts al from ASCII to HEX. If al is 42 (ascii B) for example it becomes 0B as that is hexadecimal. [al]
-WC, clears the screen (using null ASCII 00 chars) from the point of the cursor. [ax, bh, cx, dx]
 WE, prints a newline. [ax]
 WF, same as the f command from the Input. Let's the user insert a folder number and stores it at 0x1000:0x1fa-0x1fc. [ax, cl, fs, si]
 WG, allows the user to write a string to the search buffer at 0x1181:0x0 (gs:di points to it). [ax, gs, di] £
 WH, convert al from HEX to ASCII. If al is 0C for example it becomes 43 (ascii C). [al]
+WK, waits for a key press from the user similar to int 16h ah=0h. It is a more energy efficient version using hlt though. [ax]
 WN, let's the user input a two-digit number stored in cl. [ax, cl]
 !The user cannot press backspace as this will make the program end and jump back to the Input.
 WO, opens files into the location of es:bx. Before calling the macro, set es:bx pointing to a free buffer.
@@ -617,6 +613,10 @@ The bootloader simply reads the files from the booted drive and jumps to that co
 It can tell if you are booting from the hard disk or if the OS is supposed to be installed.
 QEMU doesn't work by default as its BIOS works differently from VirtualBox and my PhoenixBIOS test machine.
 Since the bootloader code is small, I added a list of commands into it, which can be read in the text editor.
+
+Key Input:
+Using int 16h for key input is CPU demanding since it is a polling method.
+By utlizing a int 16h ah=1h loop with CPU hlt, the polling is made more energy efficient.
 
 The Input:
 The Input/command prompt reads characters continuously instead of first storing them in a buffer.

@@ -9,13 +9,13 @@ OS_SECTORS equ 0x20c ;size of OS in sectors, 2 is for int 13h (read)
 
 RANDOM_BUFFER equ 0x1180
 SEARCH_BUFFER equ 0x1181
-REPLACE_BUFFER equ 0x1188
+REPLACE_BUFFER equ 0x1189
 COPY_BUFFER equ 0x1190
 
 jmp bootloader
 
     ;"help file" list of commands
-    db "Pikobrain v1.7", 0xd, 0xa
+    db "Pikobrain v1.7.1", 0xd, 0xa
     db "new, enter, back", 0xd, 0xa
     db "time", 0xd, 0xa
     db "memory [fi]", 0xd, 0xa
@@ -52,6 +52,11 @@ bootloader:
     mov word [es:bx], CTRL_BREAK ;location of handler in code
     add bx, 2h
     mov word [es:bx], 0x1000
+
+    ;mask PIT interrupt
+    in al, 21h
+    or al, 1h
+    out 21h, al
 
     ;read OS files into RAM
     mov ax, 0x1000
@@ -132,6 +137,20 @@ new:
 ;common functions
 ;some used as macros in pikoasm
 
+;wait for and return keypress
+;int 16h is a CPU-consuming polling method
+;hlt is used to give the CPU some rest
+keyget:
+    ;sleep CPU until PIT interrupt (18Hz), which is auto enabled by BIOS
+    hlt
+    mov ah, 1h ;check if key press
+    int 16h
+    je keyget ;if no key press loop hlt again
+    ;use int 16h to read and update the keyboard buffer
+    mov ah, 0h
+    int 16h
+    ret
+
 callenter:
     call enter
     jmp input
@@ -170,7 +189,9 @@ readfiles2: ;used by link
     mov al, bl
     mov ah, 2h
     pop bx
+    push ax ;IBM BIOS "bug"
     int 13h ;read
+    pop ax
     ret
 
 xtox:
@@ -213,8 +234,7 @@ xtaback:
 filenum:
     ;get 2 digit hex num input
     ;converts and into cl
-    mov ah, 0h
-    int 16h
+    call keyget
     cmp al, 0x8 ;backspace = cancel
     je filenquit
     mov ah, 0xe ;output
@@ -222,8 +242,7 @@ filenum:
     call atohex
     mov cl, al
     shl cl, 4h ;*16, store in upper nibble
-    mov ah, 0h
-    int 16h
+    call keyget
     cmp al, 0x8 ;backspace = cancel
     je filenquit
     mov ah, 0xe
@@ -322,8 +341,7 @@ sget:
     xor di, di ;gs:di search word
 sword:
     ;get char
-    mov ah, 0h
-    int 16h
+    call keyget
     cmp ah, 0x3b ;f1, quit writing, for use of old string input
     je send
     cmp al, 0x1b ;esc, quit writing, must be checked afterwards (by wreplace)
@@ -353,24 +371,6 @@ send:
     xor di, di
     ret
 
-clear:
-    ;clear the screen from cursor location
-    mov bh, 0h
-    mov ah, 3h ;read cursor location
-    int 10h
-    ;calculate number of chars for the rest of screen
-    mov cx, 0x50 ;width of screen
-    sub cl, dl
-    mov al, 0x50
-    mov ah, 0x18 ;height of screen
-    sub ah, dh
-    mul ah
-    add cx, ax
-    ;fill rest of screen
-    mov ax, 0xa00 ;null char is used
-    int 10h
-    ret
-
 ;******
 ;INPUT
 ;******
@@ -378,8 +378,7 @@ clear:
 
 input:
     ;get commands
-    mov ah, 0h
-    int 16h
+    call keyget
     mov bh, 0h ;graphics reason
 
     cmp al, 0x6e ;n
@@ -576,8 +575,7 @@ minput:
     mov ah, 3h ;get cursor location
     int 10h
     mov cx, di ;used by arrows; cx changed by 3h
-    mov ah, 0h ;get key
-    int 16h
+    call keyget
     cmp ah, 0x48 ;up
     je mup
     cmp ah, 0x50 ;down
@@ -696,6 +694,7 @@ msave:
 ;start writing in existing file
 edit:
     call readfiles
+editreload: ;wreload enters here
     mov ch, al ;number of files
     push cx ;cx stores number of files & file number
     mov bl, al ;al=number of files
@@ -703,10 +702,11 @@ edit:
     mov byte [es:bx], 0h ;mark end of buffer, due to full files
     call new ;might be used by others
     xor si, si ;index of character in top-left of screen
-    xor dx, dx ;cursor location
-    mov cx, 0xffff ;read-until index used by some editor functions
-    xor bx, bx ;es:di points to text
-    ;WARNING di may not change in read
+    xor di, di ;es:di is buffer index
+    jmp wcontinue ;fill first full screen
+
+;read from [es:bx] until bx=cx or [es:bx]=0h
+;WARNING di may not change in read
 readloop:
     mov dl, 0h
     call writeline ;bx stands after the line's last char, except for 0h
@@ -883,8 +883,7 @@ editor:
     mov ah, 3h
     int 10h
     ;read char
-    mov ah, 0h
-    int 16h
+    call keyget
     ;WARNING don't print chars before weolnot
     ;WARNING don't make ah=0xe as preparation
         ;as there are 'cmp ah's below
@@ -942,8 +941,6 @@ editor:
     je wreload
     cmp ah, 0x41 ;f7
     je wgoto
-    cmp ah, 0x42 ;f8
-    je wlink
     ;end of line writing check
     cmp dl, 0x4e ;only space allowed there
     jb weolnot
@@ -997,8 +994,20 @@ wcontinue:
     mov ah, 3h ;read cursor location
     int 10h
     call wupdate
+    ;clear screen from cursor location, needed for: wpgdown,werase,wcallcopy
+    ;calculate number of chars for the rest of screen
+    mov cx, 0x50 ;width of screen
+    sub cl, dl
+    mov al, 0x50
+    mov ah, 0x18 ;height of screen
+    sub ah, dh
+    mul ah
+    add cx, ax
     mov bh, 0h
-    mov ah, 2h ;reset cursor
+    mov ax, 0xa00 ;null char is used
+    int 10h
+    ;reset cursor (bugcheck bh=0)
+    mov ah, 2h
     mov dx, gs ;gs can change when cursor moves with word
     int 10h
     jmp editor
@@ -1130,7 +1139,6 @@ weback:
 werasend:
     mov ah, 2h ;set cursor position
     int 10h
-    call clear ;clear rest of screen
     jmp wcontinue
 wleft:
     ;move move cursor one step left
@@ -1174,33 +1182,36 @@ wright:
     mov cx, [es:di] ;store
     cmp cl, 0h ;eof do nothing
     je wrightend
-    inc di
     mov ah, 8h ;read char at cursor
     int 10h
     cmp al, 0h ;end of line 0xd/0xa (use this!)
     je wrightnl
+    inc di ;this used to be before read char at cursor -> bug
     mov ah, 0xe ;print cl char
     mov al, cl
     int 10h ;move cursor right
     inc dl ;needs to be correct
-    mov ah, 8h ;read char at cursor
-    int 10h
-    ;if ([di] == 0x20 && [dl+1]' == 0h && [di+1] not in [0xd, 0xa]  ||  [di] == 0x20 && dl == 0x4f): do a newline
+    ;if ([di] == 0x20 && dl == 0x4f OR [di] == 0x20 && [dl+1]' == 0h && [di+1] not in [0xd, 0xa]): do a newline
     cmp cl, 0x20  ;only space can demand a nl
     jne wrightend ;else simple move
     cmp dl, 0x4f    ;SPECIAL: if line is full because of space, do a newline
     je wrspacenl
-    cmp al, 0h    ;full line
+    mov ah, 8h ;read char at cursor
+    int 10h
+    cmp al, 0h    ;end of line
     jne wrightend ;else simple move
     cmp ch, 0xd    ;if space is followed by
     je wrightend   ;0xd or 0xa
     cmp ch, 0xa    ;do no newline
     je wrightend
+    ;else, space is followed by a word moved by linefull
 wrspacenl:
+    dec di ;results in di+1 in total after the next inc di
     mov bl, 0x20 ;return value for space-nl
 wrightnl:
     cmp dh, 0x18 ;do not cause a scroll
     je wrightend
+    inc di
     cmp cl, 0xd
     jne wrdskip
     inc di ;if 0xd, skip past 0xa also
@@ -1273,7 +1284,6 @@ wpgdown:
     je editor
     call rsinext ;move si to next line
     call back ;cursor to top-left
-    call clear ;clear screen
     ;values for readloop
     mov bx, si
     mov cx, di ;read until di, then goes to wcontinue
@@ -1287,6 +1297,17 @@ wins:
 wdel:
     ;go to end of file
     call back ;because dl must be 0h for readloop
+    ;read es:bx until eof
+    mov bx, di
+    dec bx ;if already at eof (inc directly in lloop)
+    call lloop
+wdelgoto: ;used by goto if index is past eof
+    ;put bx 0x200 chars before end
+    sub bx, 0x200
+    cmp bx, si ;if bx is not closer to end than si
+    jb wdelend ;..read from si (si is also always >0)
+    mov si, bx ;else: set si as bx and read from bx
+wdelend:
     mov bx, si ;reread from si
     mov cx, 0xffff
     jmp readloop
@@ -1313,16 +1334,21 @@ wspecial:
     int 10h
     jmp weolskip ;place char in buffer
 wchar:
-    ;ouput di = index of cursor char
+    ;print file_number:di = index of cursor char
     mov ah, 0xe ;write \ WARNING NASM comments can't end with backslash
     int 10h
+    pop cx ;get file number
+    push cx
+    mov ch, cl
+    call xtox
+    mov al, 0x3a ;colon :
+    int 10h ;ah is 0x0e from xtox
     mov cx, di
     call xtox
     mov ch, cl
     call xtox
     ;char press
-    mov ah, 0h
-    int 16h
+    call keyget
     mov ah, 2h ;reset cursor
     int 10h
     jmp wcontinue ;to overwrite
@@ -1335,7 +1361,6 @@ wcallcopy:
     call wcopy
     pop si
     call back
-    call clear ;clears the whole screen
     ;values for readloop
     cmp di, si ;when cutting left-limit might no longer be on screen
     ja wccsi   ;...
@@ -1428,29 +1453,22 @@ wcallfind:
     call sget ;get string into gs:, di=0h
     xor bx, bx
     call wfind
-wcfecmp: ;used by wfnext & wgoto
-    cmp si, di
-    ja wcfend
-    mov bx, si ;read from si
-    jmp wcfend2
 wcfend: ;used by several
     ;reread file from start
     xor si, si
-    xor bx, bx
 wcfend2: ;reread file from si
     call back
     ;values for readloop
-    xor dx, dx ;cursor
+    mov bx, si ;WARNING si should be given, since call back bh=0
     mov cx, di ;read until di, then goes to wcontinue
     jmp readloop
 wfnext:
     ;find next occurance of string
-    mov bx, di
     mov ax, SEARCH_BUFFER
     mov gs, ax
-    xor bx, bx ;gs:di search word
+    xor bx, bx ;gs:bx search word
     call wfind
-    jmp wcfecmp
+    jmp wcfend2
 wfind:
     ;search for word; [es:di] and [gs:bx]
     mov al, [es:di]
@@ -1525,8 +1543,7 @@ wascloop:
     int 10h
     inc cl
     jne wascloop
-    mov ah, 0h ;wait for key press
-    int 16h
+    call keyget
     mov bx, si
     jmp wcfend2 ;will read until di from si
 wreload:
@@ -1537,61 +1554,33 @@ wreload:
     mov ah, 2h ;read
     mov al, bl
     xor bx, bx
+    push ax ;IBM BIOS "bug"
     int 13h
-    mov ch, al
-    push cx ;#files | first file
-    mov di, 0xffff ;necessary for wcfend
-    jmp wcfend
+    pop ax
+    jmp editreload ;fill first screen
 wgoto:
     ;go to certain char in file
-    call filenum ;get location into ax
+    call filenum ;get location into cx
     mov ch, cl
     call filenum ;4 digit hex
-    mov di, cx ;needed for wcfend
-    jmp wcfecmp
-wlink:
-;read the current 'word' which serves as a 'link' to another file
-;open that file. ex: 0000002002 would link to file 20-21 in home folder
-;i.e. folder number, file number, number of files
-;*2002 *is shortcut to use current folder
-    ;go to start of 'word'
-    pop cx ;take down
-    dec di
-    cmp byte [es:di], 0x20 ;find space
-    jne wlink
-    inc di ;go to first char
-    mov bx, di ;will use bx as index later
-    cmp byte [es:di], 0x2a ;* shortcut for current folder
-    je wlfile
-    ;read folder number
-    mov ax, 0x1000
-    mov fs, ax
-    mov di, 0x1fa ;location of folder number
-    mov cl, 3h ;3 numbers read
-    dec bx ;agetbyte inc bx
-wlfolder:
-    call agetbyte   ;read 3 numbers
-    mov [fs:di], al ;write into folder number
-    inc di
-    dec cl
-    jne wlfolder
-wlfile:
-    ;get file number and bulk length
-    call agetbyte ;agetbyte inc bx first
-    push ax ;file number
-    call agetbyte
-    mov bl, al ;store for later
-    pop cx ;file number
-    call setfolder
-    ;read file (removed es, ax)
-    mov ah, 2h
-    mov al, bl ;number of files
+    call back
+    ;mov bx to eof
+    mov bx, di
+    dec bx ;if already at eof
+    call lloop
+    cmp cx, bx  ;if cx is beyond eof
+    ja wdelgoto ;handle this as a wdel
+    ;reread file from 0x200 chars before cx index
+    mov bx, cx
+    sub bx, 0x200
+    cmp bx, 0h ;if bx gets <0 it should be 0
+    jg wgend
     xor bx, bx
-    int 13h ;read
-    mov ch, al
-    push cx ;push new cx value
-    mov di, 0xffff ;needed for wcfend
-    jmp wcfend
+wgend:
+    ;read from bx to cx
+    mov si, bx
+    mov di, cx
+    jmp readloop ;cx already set
 wsave:
     pop cx ;number of files | first file
     push ax ;save or quicksave check later
@@ -1606,12 +1595,14 @@ wsave:
     inc bl ;number of files to save
     ;save file
     push si ;due to quicksave
-    call setfolder ;WARNING cx should be set be´fore
+    call setfolder ;WARNING cx should be set before
     pop si
     mov al, bl ;number of files
     mov ah, 3h
     xor bx, bx
+    push ax ;IBM BIOS "bug"
     int 13h
+    pop ax
     mov ch, al ;cx = number of files | first file
     pop ax ;save or quicksave
     ;check if quicksave
@@ -1676,8 +1667,7 @@ jump:
     ;move file between usb and hard disk, only works when booting from usb
     ;get source 0=80h 1=81h
     ;destination will be opposite
-    mov ah, 0h
-    int 16h
+    call keyget
     mov ah, 0xe ;output number
     int 10h
     mov bl, al ;store in bx
@@ -1726,8 +1716,7 @@ kagain: ;uses result from last operation, i.e. cx
     ;return integers
     pop dx ;first integer, 2nd already in cx
     ;get operator
-    mov ah, 0h
-    int 16h
+    call keyget
     cmp al, 31h ;1=add
     je kadd
     cmp al, 32h ;2=subtract
@@ -1871,8 +1860,7 @@ xdec:
     mov cl, 5h ;counter
 xget:
     ;get number
-    mov ah, 0h
-    int 16h
+    call keyget
     mov ah, 0xe ;output
     int 10h
     and ax, 0xf ;~sub 30h
@@ -2650,6 +2638,7 @@ aG:
     ;IN/OUT
     inc bx
     mov dl, [es:bx]
+    inc bx ;needed in both
     cmp dl, 0x49 ;I
     je aGI
     cmp dl, 0x4f ;O
@@ -2657,12 +2646,52 @@ aG:
     jmp aerror
 aGI:
     ;IN
+    mov dl, [es:bx]
+    cmp dl, 0x49 ;I
+    je aGII
+    cmp dl, 0x41 ;A
+    je aGIA
+    cmp dl, 0x58 ;X
+    je aGIX
+    ;else: in al, imm8
     mov byte [gs:di], 0xe4
     jmp a1b
+aGII:
+    ;in ax, imm8
+    mov byte [gs:di], 0xe5
+    jmp a1b
+aGIA:
+    ;in al, dx
+    mov byte [gs:di], 0xec
+    jmp acend
+aGIX:
+    ;in ax, dx
+    mov byte [gs:di], 0xed
+    jmp acend
 aGO:
     ;OUT
+    mov dl, [es:bx]
+    cmp dl, 0x4f ;O
+    je aGOO
+    cmp dl, 0x41 ;A
+    je aGOA
+    cmp dl, 0x58 ;X
+    je aGOX
+    ;else: out al, imm8
     mov byte [gs:di], 0xe6
     jmp a1b
+aGOO:
+    ;out ax, imm8
+    mov byte [gs:di], 0xe7
+    jmp a1b
+aGOA:
+    ;out al, dx
+    mov byte [gs:di], 0xee
+    jmp acend
+aGOX:
+    ;out ax, dx
+    mov byte [gs:di], 0xef
+    jmp acend
 aF:
     mov byte [gs:di], 0xe8 ;call
     jmp aJMP
@@ -2678,8 +2707,6 @@ aW:
     mov al, [es:bx] ;next char
     cmp al, 0x41 ;atohex
     je aWA
-    cmp al, 0x43 ;clear
-    je aWC
     cmp al, 0x45 ;enter
     je aWE
     cmp al, 0x46 ;folder
@@ -2688,6 +2715,8 @@ aW:
     je aWG
     cmp al, 0x48 ;xtoasc Hex
     je aWH
+    cmp al, 0x4b ;keyget
+    je aWK
     cmp al, 0x4e ;fileNum
     je aWN
     cmp al, 0x4f ;readfiles2 Open
@@ -2704,9 +2733,6 @@ aW:
 aWA:
     add cx, atohex ;adding location of function to cx
     jmp aWend
-aWC:
-    add cx, clear
-    jmp aWend
 aWE:
     add cx, enter
     jmp aWend
@@ -2718,6 +2744,9 @@ aWG:
     jmp aWend
 aWH:
     add cx, xtoasc
+    jmp aWend
+aWK:
+    add cx, keyget
     jmp aWend
 aWN:
     add cx, filenum
@@ -2760,8 +2789,10 @@ aJ:
     je aJA
     cmp al, 0x4c ;Less
     je aJL
-    cmp al, 0x42 ;Below
+    cmp al, 0x42 ;Below = Carry
     je aJB
+    cmp al, 0x4f ;Overflow
+    je aJO
     jmp aerror
 aJE:
     mov byte [gs:di], 0x84
@@ -2780,6 +2811,9 @@ aJL:
     jmp aJMP
 aJB:
     mov byte [gs:di], 0x82
+    jmp aJMP
+aJO:
+    mov byte [gs:di], 0x80
     jmp aJMP
 aJM:
     mov byte [gs:di], 0xe9 ;jmp
